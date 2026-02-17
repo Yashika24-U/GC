@@ -1,0 +1,19 @@
+{
+  "service": "SDP",
+  "type": "personal",
+  "widgets": [
+    {
+      "name": "Google Calendar",
+      "description": "Google Calendar integration with ServiceDesk Plus Cloud",
+      "path_url": "/app/widget.html",
+      "show_widget_header_in_dashboard": true,
+      "cspDomains": {
+        "connect-src": ["https://*.ngrok-free.dev", "https://*.googleapis.com"]
+      },
+      "icons": {
+        "30x30": "/app/img/Calendar.png"
+      },
+      "locations": ["request.detail.rightpanel"]
+    }
+  ]
+}

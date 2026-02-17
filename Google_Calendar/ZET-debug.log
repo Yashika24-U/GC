@@ -1,0 +1,36 @@
+[error] [2026-02-11T19:47:50.230Z] : uncaughtException: password authentication failed for user "postgres"
+error: password authentication failed for user "postgres"
+    at /home/yashika/Google_Calendar-20260204T123921Z-3-001/Google_Calendar/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async testConnection (/home/yashika/Google_Calendar-20260204T123921Z-3-001/Google_Calendar/server/index.js:81:17)
+[error] [2026-02-11T19:47:50.233Z] : uncaughtException: password authentication failed for user "postgres"
+error: password authentication failed for user "postgres"
+    at /home/yashika/Google_Calendar-20260204T123921Z-3-001/Google_Calendar/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async renewExpiringCalendarWatches (/home/yashika/Google_Calendar-20260204T123921Z-3-001/Google_Calendar/server/services/watchRenewalService.service.js:14:18)
+    at async /home/yashika/Google_Calendar-20260204T123921Z-3-001/Google_Calendar/server/index.js:91:5
+[error] [2026-02-11T20:27:29.662Z] : uncaughtException: Technician 82331a4d5e178bd9991c7ccd03b0f5204315dfc8b54566bb9d10c73b126e446d@group.calendar.google.com has not authorized Google yet.
+Error: Technician 82331a4d5e178bd9991c7ccd03b0f5204315dfc8b54566bb9d10c73b126e446d@group.calendar.google.com has not authorized Google yet.
+    at getAuthorizedClient (/home/yashika/Google_Calendar-20260204T123921Z-3-001/Google_Calendar/server/services/googleCalendar.service.js:21:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async handleCreateEvent (/home/yashika/Google_Calendar-20260204T123921Z-3-001/Google_Calendar/server/controller/event.controller.js:30:18)
+[error] [2026-02-11T20:33:45.994Z] : uncaughtException: Technician 82331a4d5e178bd9991c7ccd03b0f5204315dfc8b54566bb9d10c73b126e446d@group.calendar.google.com has not authorized Google yet.
+Error: Technician 82331a4d5e178bd9991c7ccd03b0f5204315dfc8b54566bb9d10c73b126e446d@group.calendar.google.com has not authorized Google yet.
+    at getAuthorizedClient (/home/yashika/Google_Calendar-20260204T123921Z-3-001/Google_Calendar/server/services/googleCalendar.service.js:21:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async handleCreateEvent (/home/yashika/Google_Calendar-20260204T123921Z-3-001/Google_Calendar/server/controller/event.controller.js:30:18)
+[error] [2026-02-11T21:41:48.038Z] : uncaughtException: Technician 82331a4d5e178bd9991c7ccd03b0f5204315dfc8b54566bb9d10c73b126e446d@group.calendar.google.com has not authorized Google yet.
+Error: Technician 82331a4d5e178bd9991c7ccd03b0f5204315dfc8b54566bb9d10c73b126e446d@group.calendar.google.com has not authorized Google yet.
+    at getAuthorizedClient (/home/yashika/Google_Calendar-20260204T123921Z-3-001/Google_Calendar/server/services/googleCalendar.service.js:21:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async handleCreateEvent (/home/yashika/Google_Calendar-20260204T123921Z-3-001/Google_Calendar/server/controller/event.controller.js:30:18)
+[error] [2026-02-12T01:00:49.789Z] : uncaughtException: permission denied for table google_events
+error: permission denied for table google_events
+    at /home/yashika/Google_Calendar-20260204T123921Z-3-001/Google_Calendar/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async getEventBySdpRequest (/home/yashika/Google_Calendar-20260204T123921Z-3-001/Google_Calendar/server/controller/event.controller.js:55:22)
+[error] [2026-02-12T01:02:48.815Z] : uncaughtException: Technician yashikayeshi@gmail.com has not authorized Google yet.
+Error: Technician yashikayeshi@gmail.com has not authorized Google yet.
+    at getAuthorizedClient (/home/yashika/Google_Calendar-20260204T123921Z-3-001/Google_Calendar/server/services/googleCalendar.service.js:21:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async handleCalendarChange (/home/yashika/Google_Calendar-20260204T123921Z-3-001/Google_Calendar/server/services/googleCalendar.service.js:113:18)

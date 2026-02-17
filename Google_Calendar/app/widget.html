@@ -1,0 +1,1455 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Google Calendar Event Manager</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        background: #f5f7fa;
+        padding: 16px;
+        max-width: 100%;
+        overflow-x: hidden;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #0052a3 0%, #003d7a 100%);
+        color: white;
+        padding: 24px;
+        text-align: center;
+      }
+
+      .header h2 {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+
+      .content {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .form-section {
+        padding: 24px;
+        border-bottom: 1px solid #e5e7eb;
+        transition: all 0.3s ease;
+      }
+
+      .form-section.hidden {
+        display: none;
+      }
+
+      .form-control {
+        margin-bottom: 20px;
+      }
+
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: #1f2937;
+        font-size: 14px;
+      }
+
+      .required::after {
+        content: " *";
+        color: #ef4444;
+      }
+
+      input,
+      textarea,
+      select {
+        width: 100%;
+        padding: 10px 14px;
+        border-radius: 8px;
+        border: 2px solid #e5e7eb;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        background: #f9fafb;
+        font-family: inherit;
+      }
+
+      input:focus,
+      textarea:focus,
+      select:focus {
+        outline: none;
+        border-color: #0052a3;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(0, 82, 163, 0.1);
+      }
+
+      textarea {
+        resize: vertical;
+        min-height: 80px;
+        line-height: 1.5;
+      }
+
+      select {
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 14px center;
+        padding-right: 40px;
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .validation-hint {
+        font-size: 12px;
+        color: #6b7280;
+        margin-top: 4px;
+      }
+
+      .error-message {
+        color: #ef4444;
+        font-size: 12px;
+        margin-top: 4px;
+        font-weight: 500;
+      }
+
+      .attendees-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+        min-height: 28px;
+      }
+
+      .attendee-chip {
+        display: inline-flex;
+        align-items: center;
+        background: #e0e7ff;
+        color: #4338ca;
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        animation: chipFadeIn 0.2s ease;
+      }
+
+      @keyframes chipFadeIn {
+        from {
+          opacity: 0;
+          transform: scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      .attendee-chip span {
+        margin-right: 6px;
+      }
+
+      .attendee-chip button {
+        all: unset;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 14px;
+        color: #4338ca;
+        background: rgba(67, 56, 202, 0.15);
+        transition: background 0.2s;
+      }
+
+      .attendee-chip button:hover {
+        background: rgba(67, 56, 202, 0.25);
+      }
+
+      .button-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      button {
+        flex: 1;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        position: relative;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #0052a3 0%, #003d7a 100%);
+        color: white;
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(0, 82, 163, 0.3);
+      }
+
+      .btn-secondary {
+        background: #f3f4f6;
+        color: #374151;
+      }
+
+      .btn-secondary:hover:not(:disabled) {
+        background: #e5e7eb;
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none !important;
+      }
+
+      .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 0.8s linear infinite;
+        display: inline-block;
+        margin-right: 8px;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .events-section {
+        padding: 24px;
+        background: #f9fafb;
+      }
+
+      .events-section.hidden {
+        display: none;
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .event-card:hover {
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+      }
+
+      .event-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 16px;
+        padding-bottom: 16px;
+        border-bottom: 2px solid #f3f4f6;
+      }
+
+      .event-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 4px;
+      }
+
+      .event-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        background: #dcfce7;
+        color: #16a34a;
+        font-size: 11px;
+        font-weight: 600;
+        border-radius: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .event-info {
+        margin-bottom: 12px;
+      }
+
+      .event-info-row {
+        display: flex;
+        align-items: start;
+        gap: 10px;
+        margin-bottom: 10px;
+        font-size: 14px;
+        color: #4b5563;
+        line-height: 1.6;
+      }
+
+      .event-info-icon {
+        font-size: 16px;
+        min-width: 20px;
+      }
+
+      .event-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 2px solid #f3f4f6;
+      }
+
+      .action-btn {
+        flex: 1;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+
+      .btn-edit {
+        background: #eff6ff;
+        color: #2563eb;
+      }
+
+      .btn-edit:hover {
+        background: #dbeafe;
+        transform: translateY(-1px);
+      }
+
+      .btn-delete {
+        background: #fef2f2;
+        color: #dc2626;
+      }
+
+      .btn-delete:hover {
+        background: #fee2e2;
+        transform: translateY(-1px);
+      }
+
+      .btn-view {
+        background: #f0fdf4;
+        color: #16a34a;
+      }
+
+      .btn-view:hover {
+        background: #dcfce7;
+        transform: translateY(-1px);
+      }
+
+      .toast-container {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .toast {
+        min-width: 320px;
+        padding: 16px 20px;
+        border-radius: 10px;
+        font-size: 14px;
+        color: white;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        animation: toastSlideIn 0.3s ease;
+        font-weight: 500;
+      }
+
+      @keyframes toastSlideIn {
+        from {
+          opacity: 0;
+          transform: translateX(100%);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      .toast-success {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      }
+
+      .toast-error {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      }
+
+      .toast::before {
+        font-size: 20px;
+      }
+
+      .toast-success::before {
+        content: "✓";
+      }
+      .toast-error::before {
+        content: "✕";
+      }
+
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.2s ease;
+      }
+
+      .modal-overlay.active {
+        display: flex;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      .modal {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 400px;
+        width: 90%;
+        animation: modalSlideUp 0.3s ease;
+      }
+
+      @keyframes modalSlideUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .modal-header {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 12px;
+      }
+
+      .modal-body {
+        font-size: 14px;
+        color: #6b7280;
+        margin-bottom: 20px;
+        line-height: 1.6;
+      }
+
+      .modal-actions {
+        display: flex;
+        gap: 10px;
+      }
+
+      .modal-btn {
+        flex: 1;
+        padding: 10px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        font-size: 14px;
+        transition: all 0.2s ease;
+      }
+
+      .modal-btn-cancel {
+        background: #f3f4f6;
+        color: #374151;
+      }
+
+      .modal-btn-cancel:hover {
+        background: #e5e7eb;
+      }
+
+      .modal-btn-confirm {
+        background: #dc2626;
+        color: white;
+      }
+
+      .modal-btn-confirm:hover {
+        background: #b91c1c;
+      }
+
+      .loading-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.95);
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+      }
+
+      .loading-overlay.active {
+        display: flex;
+      }
+
+      .loader {
+        text-align: center;
+      }
+
+      .loader-spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid #e5e7eb;
+        border-radius: 50%;
+        border-top-color: #0052a3;
+        animation: spin 0.8s linear infinite;
+        margin: 0 auto 16px;
+      }
+
+      .loader-text {
+        font-size: 14px;
+        color: #6b7280;
+        font-weight: 500;
+      }
+      .remove-attendee {
+        cursor: pointer;
+      }
+
+      .meet-link {
+        font-size: 14px;
+        color: #0b5cff;
+        font-weight: 500;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .meet-link::before {
+        content: "🔗";
+        font-size: 13px;
+      }
+
+      .meet-link:hover {
+        text-decoration: underline;
+      }
+
+      .event-card {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
+        max-width: 600px;
+        margin: 0 auto 20px;
+        font-family: sans-serif;
+        overflow: hidden;
+      }
+
+      .event-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        background: #f5f5f5;
+      }
+
+      .event-title {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 600;
+      }
+
+      .event-actions button {
+        margin-left: 8px;
+        padding: 6px 12px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      .btn-action {
+        margin: 5px;
+        padding: 10px;
+        background-color: #0b5cff;
+        color: white;
+      }
+
+      .btn-delete {
+        background-color: #6b7280;
+      }
+
+      .event-section {
+        padding: 16px 20px;
+        border-top: 1px solid #eee;
+      }
+
+      .event-section h3 {
+        margin-top: 0;
+        margin-bottom: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #555;
+      }
+
+      .event-description,
+      .event-section p {
+        margin: 4px 0;
+        font-size: 15px;
+        color: #333;
+      }
+
+      .attendee-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 6px;
+      }
+
+      .attendee-avatar {
+        width: 28px;
+        height: 28px;
+        min-width: 28px;
+        border-radius: 50%;
+        background: #667eea;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 12px;
+        flex-shrink: 0;
+      }
+
+      .attendee-info {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+      }
+
+      .attendee-email {
+        font-size: 14px;
+        color: #333;
+      }
+
+      .no-data {
+        font-style: italic;
+        color: #999;
+      }
+
+      .meet-link {
+        color: #0b5cff;
+        text-decoration: underline;
+        font-weight: 500;
+      }
+
+      @media (max-width: 500px) {
+        .event-card {
+          max-width: 100%;
+        }
+
+        .event-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 8px;
+        }
+
+        .event-actions {
+          margin-top: 8px;
+        }
+      }
+
+      @media (max-width: 768px) {
+        body {
+          padding: 8px;
+        }
+
+        .form-section {
+          padding: 16px;
+        }
+
+        .form-row {
+          grid-template-columns: 1fr;
+        }
+
+        .events-section {
+          padding: 16px;
+        }
+
+        .button-group {
+          flex-direction: column;
+        }
+
+        .event-actions {
+          flex-direction: column;
+        }
+
+        .toast {
+          min-width: 280px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h2>Calendar Event Manager</h2>
+      </div>
+
+      <div class="content">
+        <!-- Form Section -->
+        <div id="formSection" class="form-section">
+          <form id="eventForm">
+            <div class="form-control">
+              <label for="calendarSelect" class="required"
+                >Select Calendar</label
+              >
+              <select id="calendarSelect" required>
+                <option value="">Choose a calendar...</option>
+              </select>
+              <!-- <div class="validation-hint">
+                Select where to create the event
+              </div> -->
+
+              <span id="authStatus"></span>
+
+              <button
+                id="authBtn"
+                class="btn-action hidden"
+                onclick="startAuth()"
+              >
+                Connect Google
+              </button>
+            </div>
+
+            <div class="form-control">
+              <label for="eventTitle" class="required">Event Title</label>
+              <input
+                type="text"
+                id="eventTitle"
+                required
+                placeholder="e.g., Team Meeting, Project Review..."
+              />
+            </div>
+
+            <div class="form-control">
+              <label for="eventDescription">Description</label>
+              <textarea
+                id="eventDescription"
+                placeholder="Add agenda, notes, or meeting details..."
+              ></textarea>
+            </div>
+
+            <div class="form-control">
+              <label for="eventLocation">Location</label>
+              <input
+                type="text"
+                id="eventLocation"
+                placeholder="Meeting room, address, or video link..."
+              />
+            </div>
+
+            <div class="form-row">
+              <div class="form-control">
+                <label for="start" class="required">Start Time</label>
+                <input type="datetime-local" id="start" required />
+                <div id="startTimeError" class="error-message"></div>
+              </div>
+
+              <div class="form-control">
+                <label for="end" class="required">End Time</label>
+                <input type="datetime-local" id="end" required />
+                <div id="endTimeError" class="error-message"></div>
+              </div>
+            </div>
+
+            <div class="form-control">
+              <label for="attendeesInput">Attendees (Optional)</label>
+              <input
+                type="email"
+                id="attendeesInput"
+                placeholder="Enter email and press Enter..."
+              />
+              <div id="attendeesContainer" class="attendees-container"></div>
+              <div id="attendeeError" class="error-message"></div>
+            </div>
+
+            <div class="button-group">
+              <button id="submitBtn" type="submit" class="btn-primary">
+                <span id="submitBtnText">Create Event</span>
+              </button>
+              <button id="cancelBtn" type="button" class="btn-secondary hidden">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Events Section -->
+        <div id="eventsSection" class="events-section hidden">
+          <div id="eventCard"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+      <div class="loader">
+        <div class="loader-spinner"></div>
+        <div class="loader-text">Processing...</div>
+      </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- SDP SDK -->
+    <script src="https://sdpondemand.manageengine.com/scripts/v1/widget/sdpclientsdk.min.js"></script>
+
+    <script>
+      /* ==========================================
+                      GLOBAL UI STATE (SINGLE EVENT ONLY)
+                      ========================================== */
+      let reqId = null;
+      let selectedCalendarId = null;
+      let attendees = [];
+      let currentEvent = null;
+      let isEditMode = false;
+      let attendeesInput = null;
+      let attendeeError = null;
+      let editingEventId = null;
+
+      const USER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+      /* ==========================================
+                      UTILITIES
+
+                      ========================================== */
+
+      // function localInputToUTCISO(localValue) {
+      //   if (!localValue) return null;
+
+      //   // datetime-local is already local time
+      //   const localDate = new Date(localValue);
+
+      //   // Convert to UTC ISO safely
+      //   return new Date(
+      //     localDate.getTime() - localDate.getTimezoneOffset() * 60000,
+      //   ).toISOString();
+      // }
+      function localInputToUTCISO(localValue) {
+        if (!localValue) return null;
+        return new Date(localValue).toISOString();
+      }
+
+      function isValidEmail(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      }
+
+      function renderAttendees() {
+        const attendeesContainer =
+          document.getElementById("attendeesContainer");
+        attendeesContainer.innerHTML = "";
+
+        attendees.forEach((attendee, index) => {
+          const chip = document.createElement("div");
+          chip.className = "attendee-chip";
+          chip.textContent = attendee.email;
+
+          const removeBtn = document.createElement("span");
+          removeBtn.textContent = "×";
+          removeBtn.className = "remove-attendee";
+          removeBtn.onclick = () => {
+            attendees.splice(index, 1);
+            renderAttendees();
+          };
+
+          chip.appendChild(removeBtn);
+          attendeesContainer.appendChild(chip);
+        });
+      }
+      function showToast(type, message) {
+        const container = document.getElementById("toastContainer");
+        const toast = document.createElement("div");
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+      }
+
+      function showLoading(show = true, text = "Processing...") {
+        const overlay = document.getElementById("loadingOverlay");
+        overlay.querySelector(".loader-text").textContent = text;
+        overlay.classList.toggle("active", show);
+      }
+
+      function toLocalDateTimeValue(dateStr) {
+        if (!dateStr) return "";
+        const d = new Date(dateStr);
+        const offset = d.getTimezoneOffset() * 60000;
+        return new Date(d.getTime() - offset).toISOString().slice(0, 16);
+      }
+
+      function formatDisplayDate(dateStr) {
+        if (!dateStr) return "";
+        return new Date(dateStr).toLocaleString(undefined, {
+          dateStyle: "medium",
+          timeStyle: "short",
+          timeZone: USER_TIMEZONE,
+        });
+      }
+
+      /* ==========================================
+                      GOOGLE CALENDAR
+                      ========================================== */
+
+      async function fetchCalendarList() {
+        const res = await SDP.invokeUrl({
+          url: "https://www.googleapis.com/calendar/v3/users/me/calendarList",
+          method: "get",
+          connectionLinkName: "calendar",
+        });
+        return res.response?.items || [];
+      }
+
+      async function createEvent(payload) {
+        const res = await SDP.invokeUrl({
+          url: `https://www.googleapis.com/calendar/v3/calendars/${selectedCalendarId}/events`,
+          method: "post",
+          payload: JSON.stringify(payload),
+          connectionLinkName: "calendar",
+        });
+        return res.response;
+      }
+
+      async function updateEvent(eventId, payload) {
+        const res = await SDP.invokeUrl({
+          url: `https://www.googleapis.com/calendar/v3/calendars/${selectedCalendarId}/events/${eventId}`,
+          method: "put",
+          payload: JSON.stringify(payload),
+          connectionLinkName: "calendar",
+        });
+        return res.response;
+      }
+
+      async function handleDelete(googleEventId) {
+        if (!googleEventId) return showToast("error", "Event not found");
+
+        showLoading(true, "Deleting...");
+
+        try {
+          // 1️⃣ Delete from Google Calendar
+
+          // 2️⃣ Delete from DB
+          await deleteEventFromDB(googleEventId);
+
+          // 3️⃣ Clear local state & update UI
+          currentEvent = null;
+          resetForm();
+          showFormView();
+
+          showToast("success", "Event deleted successfully");
+        } catch (err) {
+          showToast("error", "Delete failed. Try again.");
+        } finally {
+          showLoading(false);
+        }
+      }
+
+      /* ==========================================
+                      BACKEND (SOURCE OF TRUTH)
+                      ========================================== */
+      async function fetchEventFromDB() {
+        const res = await SDP.invokeUrl({
+          url: `https://gc.spritle.com/app/api/requests/${reqId}`,
+          method: "get",
+          headers: { "Content-Type": "application/json" },
+        });
+
+        if (
+          Array.isArray(res.response?.events) &&
+          res.response.events.length > 0
+        ) {
+          return res.response.events[0]; // 1 ticket = 1 event
+        }
+        return null;
+      }
+
+      async function deleteEventFromDB(eventId) {
+        await SDP.invokeUrl({
+          url: `https://gc.spritle.com/app/api/requests/${reqId}/events/${eventId}`,
+          method: "delete",
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      /* ==========================================-
+                      VIEW HELPERS
+                      ========================================== */
+      function showFormView() {
+        document.getElementById("formSection").classList.remove("hidden");
+        document.getElementById("eventsSection").classList.add("hidden");
+      }
+
+      function showEventView() {
+        document.getElementById("eventsSection").classList.remove("hidden");
+        document.getElementById("formSection").classList.add("hidden");
+      }
+      function renderEventCard(event) {
+        const card = document.getElementById("eventCard");
+
+        const attendeesList = event.attendees?.length
+          ? event.attendees
+              .map(
+                (a) => `
+                  <div class="attendee-item">
+                    <div class="attendee-avatar">
+                      ${a.email.charAt(0).toUpperCase()}
+                    </div>
+                    <div class="attendee-info">
+                      <span class="attendee-email">${a.email}</span>
+                    </div>
+                  </div>`,
+              )
+              .join("")
+          : '<div class="no-data">No attendees</div>';
+
+        const description = event.description
+          ? `<p class="event-description">${event.description}</p>`
+          : '<p class="no-data">No description provided</p>';
+
+        const meetLink = event.html_link || event.hangoutLink;
+
+        card.innerHTML = `
+          <div class="event-card">
+            <div class="event-header">
+              <h2 class="event-title">${event.title}</h2>
+              <div class="event-actions">
+                <button onclick="editEvent('${currentEvent.google_event_id}')" class="btn-action">
+                  Edit
+                </button>
+                <button onclick="handleDelete('${currentEvent.google_event_id}')" class="btn-action btn-delete">
+                  Delete
+                </button>
+              </div>
+            </div>
+
+            <div class="event-section">
+              <h3>Description</h3>
+              ${description}
+            </div>
+
+            <div class="event-section">
+              <h3>Date & Time</h3>
+              <p><strong>Start:</strong> ${formatDisplayDate(event.start_time)}</p>
+              <p><strong>End:</strong> ${formatDisplayDate(event.end_time)}</p>
+            </div>
+
+            <div class="event-section">
+              <h3>Location</h3>
+              <p>${event.location || '<span class="no-data">Not set</span>'}</p>
+            </div>
+
+            <div class="event-section">
+              <h3>Meeting Link</h3>
+              ${
+                meetLink
+                  ? `<a href="${meetLink}" target="_blank" rel="noopener" class="meet-link">
+                      Join Google Meet
+                    </a>`
+                  : '<p class="no-data">Not available</p>'
+              }
+            </div>
+
+            <div class="event-section">
+              <h3>Attendees (${event.attendees?.length || 0})</h3>
+              ${attendeesList}
+            </div>
+          </div>
+        `;
+
+        showEventView();
+      }
+
+      /* ==========================================
+                      FORM ACTIONS
+      ========================================== */
+      function resetForm() {
+        document.getElementById("eventForm").reset();
+        attendees = [];
+        isEditMode = false;
+
+        // Reset submit button text
+        document.getElementById("submitBtnText").textContent = "Create Event";
+
+        // Hide Cancel button
+        document.getElementById("cancelBtn").classList.add("hidden");
+      }
+
+      function startAuth() {
+        if (!selectedCalendarId)
+          return showToast("error", "Select a calendar first");
+
+        // This URL should hit your backend route that calls oauth2Client.generateAuthUrl()
+        const authUrl = `https://gc.spritle.com/app/api/auth/google?calendarId=${selectedCalendarId}`;
+
+        // Open Google Login in a popup
+        const width = 500,
+          height = 600;
+        const left = window.innerWidth / 2 - width / 2;
+        const top = window.innerHeight / 2 - height / 2;
+
+        window.open(
+          authUrl,
+          "googleAuth",
+          `width=${width},height=${height},top=${top},left=${left}`,
+        );
+      }
+
+      function populateFormForEdit(event) {
+        eventTitle.value = event.title || "";
+        eventDescription.value = event.description || "";
+        eventLocation.value = event.location || "";
+        start.value = toLocalDateTimeValue(event.start_time);
+        end.value = toLocalDateTimeValue(event.end_time);
+        selectedCalendarId = event.calendar_id;
+        calendarSelect.value = selectedCalendarId;
+
+        isEditMode = true;
+
+        // Change submit button text
+        document.getElementById("submitBtnText").textContent = "Update Event";
+        document.getElementById("cancelBtn").classList.remove("hidden");
+        attendees = [];
+
+        // Hydrate attendees from backend event
+        if (Array.isArray(event.attendees)) {
+          attendees = event.attendees.map((a) => ({
+            email: a.email,
+          }));
+        }
+
+        // Re-render attendee chips
+        renderAttendees();
+
+        showFormView();
+      }
+
+      function addAttendeeFromInput() {
+        const email = attendeesInput.value.trim().toLowerCase();
+        attendeeError.textContent = "";
+
+        if (!email) return false;
+        if (!isValidEmail(email)) {
+          attendeeError.textContent = "Invalid email address";
+          return false;
+        }
+        if (attendees.some((a) => a.email === email)) {
+          attendeeError.textContent = "Attendee already added";
+          return false;
+        }
+        if (attendees.length >= 20) {
+          attendeeError.textContent = "Maximum 20 attendees allowed";
+          return false;
+        }
+
+        attendees.push({ email });
+        renderAttendees();
+        attendeesInput.value = "";
+        return true;
+      }
+
+      /* ==========================================
+                      FORM SUBMIT
+                      ========================================== */
+      async function handleFormSubmit(e) {
+        e.preventDefault();
+        // addAttendeeFromInput();
+        if (!addAttendeeFromInput() && attendeesInput.value.trim()) {
+          return;
+        }
+
+        if (!selectedCalendarId) {
+          showToast("error", "Select calendar");
+          return;
+        }
+
+        if (!eventTitle.value?.trim()) {
+          showToast("error", "Title is required");
+          return;
+        }
+
+        if (new Date(start.value) >= new Date(end.value)) {
+          showToast("error", "End time must be after start time");
+          return;
+        }
+
+        showLoading(true, isEditMode ? "Updating..." : "Creating...");
+
+        try {
+          const payload = {
+            summary: eventTitle.value,
+            description: eventDescription.value,
+            location: eventLocation.value,
+            start: {
+              dateTime: localInputToUTCISO(start.value),
+              timeZone: USER_TIMEZONE,
+            },
+            end: {
+              dateTime: localInputToUTCISO(end.value),
+              timeZone: USER_TIMEZONE,
+            },
+            attendees: attendees,
+          };
+          if (!payload.start.dateTime || !payload.end.dateTime) {
+            showToast("error", "Invalid date/time selected");
+            return;
+          }
+
+          const gEvent = isEditMode
+            ? await updateEvent(currentEvent.google_event_id, payload)
+            : await createEvent(payload);
+
+          try {
+            await syncEventToBackend(gEvent);
+          } catch (err) {
+            showToast("error", "Event created but sync failed");
+          }
+
+          currentEvent = await fetchEventFromDB();
+          renderEventCard(currentEvent);
+
+          showToast("success", isEditMode ? "Updated" : "Created");
+          resetForm();
+        } catch {
+          showToast("error", "Operation failed");
+        } finally {
+          showLoading(false);
+        }
+      }
+
+      /* ==========================================
+                      SAVE EVENT MAPPING TO BACKEND
+                      ========================================== */
+      async function syncEventToBackend(gEvent) {
+        if (!reqId || !selectedCalendarId || !gEvent?.id) {
+          return;
+        }
+
+        try {
+          const res = await SDP.invokeUrl({
+            url: "https://gc.spritle.com/app/api/events",
+            method: "post",
+            headers: {
+              "Content-Type": "application/json",
+              "ngrok-skip-browser-warning": "69420",
+            },
+            payload: JSON.stringify({
+              sdpRequestId: reqId,
+              calendarId: selectedCalendarId,
+              source: "SDP",
+              googleEvent: gEvent,
+            }),
+          });
+        } catch (err) {
+          throw err;
+        }
+      }
+      /* ==========================================
+                      INIT
+      ========================================== */
+      document.addEventListener("DOMContentLoaded", async () => {
+        let data;
+
+        showLoading(true, "Loading...");
+
+        try {
+          // 1️⃣ SDP INIT
+          data = await SDP.init();
+          reqId = data.meta.module_entity_id;
+
+          // 2️⃣ Fetch calendars
+          let calendars = [];
+          try {
+            calendars = await fetchCalendarList();
+          } catch (err) {
+            showToast(
+              "error",
+              "Unable to load Google calendars. Please re-authorize.",
+            );
+            return;
+          }
+
+          calendarSelect.innerHTML =
+            `<option value="">Choose a calendar...</option>` +
+            calendars
+              .map((c) => `<option value="${c.id}">${c.summary}</option>`)
+              .join("");
+
+          // calendarSelect.onchange = (e) => {
+          //   selectedCalendarId = e.target.value;
+          // };
+
+          // if (!selectedCalendarId) {
+          //   console.warn("Skipping auth check - calendarId missing");
+          // } else {
+          //   showLoading(true, "Checking authorization...");
+
+          //   try {
+          //     const res = await SDP.invokeUrl({
+          //       url: `https://gc.spritle.com/app/api/auth/status?calendarId=${selectedCalendarId}`,
+          //       method: "get",
+          //       headers: {
+          //         "Content-Type": "application/json",
+          //       },
+          //     });
+
+          //     // if (!res.response?.authorized) {
+          //     //   showToast("error", "Calendar not connected. Redirecting...");
+          //     //   window.open(
+          //     //     `https://gc.spritle.com/app/api/auth/google?calendarId=${selectedCalendarId}`,
+          //     //     "_blank",
+          //     //   );
+          //     // } else {
+          //     //   console.log("✅ Calendar already authorized");
+          //     // }
+          //   } catch (err) {
+
+          //     showToast("error", "Failed to verify calendar authorization");
+          //   } finally {
+          //     showLoading(false);
+          //   }
+          // }
+
+          calendarSelect.onchange = async (e) => {
+            console.log("calendars");
+            selectedCalendarId = e.target.value;
+            const authBtn = document.getElementById("authBtn");
+            const statusLabel = document.getElementById("authStatus");
+
+            // 1. Clear UI immediately
+            statusLabel.innerHTML = "";
+            authBtn.classList.add("hidden");
+
+            if (!selectedCalendarId) return;
+
+            showLoading(true, "Checking authorization...");
+            try {
+              const res = await SDP.invokeUrl({
+                url: `https://gc.spritle.com/app/api/auth/status?calendarId=${encodeURIComponent(selectedCalendarId)}`,
+                method: "get",
+              });
+
+              if (res.response?.authorized) {
+                statusLabel.innerHTML = `Linked: <strong style="color: #2e7d32;">${res.response.email || "Authorized"}</strong>`;
+                authBtn.classList.add("hidden");
+              } else {
+                statusLabel.innerHTML = `<span style="color: #d32f2f;">Connection required to sync events.</span>`;
+                authBtn.classList.remove("hidden");
+              }
+            } catch (err) {
+              showToast("error", "Failed to verify authorization");
+            } finally {
+              showLoading(false);
+            }
+          };
+          window.addEventListener("message", (event) => {
+            if (event.data === "oauth_success") {
+              console.log("OAuth completed. Re-checking authorization...");
+              calendarSelect.dispatchEvent(new Event("change"));
+            }
+          });
+
+          // 3️⃣ Attendees input
+          attendeesInput = document.getElementById("attendeesInput");
+          attendeeError = document.getElementById("attendeeError");
+
+          attendeesInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addAttendeeFromInput();
+            }
+          });
+          attendeesInput.addEventListener("blur", () => {
+            addAttendeeFromInput();
+          });
+
+          // 4️⃣ Form submit
+          eventForm.addEventListener("submit", handleFormSubmit);
+
+          // 5️⃣ Fetch existing event (guarded)
+          try {
+            currentEvent = await fetchEventFromDB();
+          } catch (err) {
+            currentEvent = null;
+          }
+
+          if (currentEvent) {
+            renderEventCard(currentEvent);
+          } else {
+            showFormView();
+          }
+        } catch (err) {
+          showToast("error", "Unable to initialize ServiceDesk context");
+        } finally {
+          showLoading(false);
+        }
+      });
+      function editEvent(eventId) {
+        if (!currentEvent || currentEvent.google_event_id !== eventId) {
+          return;
+        }
+
+        isEditMode = true;
+        editingEventId = eventId;
+
+        populateFormForEdit(currentEvent);
+
+        document.getElementById("submitBtnText").textContent = "Update";
+        document.getElementById("cancelBtn").classList.remove("hidden");
+      }
+    </script>
+  </body>
+</html>

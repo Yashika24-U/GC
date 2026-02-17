@@ -1,0 +1,19 @@
+# Secrets
+.env
+
+# Certificates and Keys
+*.pem
+*.crt
+*.key
+*.csr
+.cert/
+cert/
+
+# Dependencies (Crucial!)
+node_modules/
+dist/
+build/
+
+# Logs
+npm-debug.log*
+yarn-error.log*
