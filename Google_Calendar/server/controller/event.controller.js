@@ -55,20 +55,20 @@ const getEventBySdpRequest = async (req, res) => {
     const { rows } = await db.query(
       `
       SELECT
-        ge.google_event_id,
-        ge.calendar_id,
-        ge.title,
-        ge.description,
-        ge.start_time,
-        ge.end_time,
-        ge.location,
-        ge.attendees,
-        ge.html_link,
-        ge.updated_at
-      FROM google_events ge
-      JOIN event_mappings em
-        ON ge.google_event_id = em.google_event_id
-      WHERE em.sdp_request_id = $1
+        ge."google_event_id",
+        ge."calendar_id",
+        ge."title",
+        ge."description",
+        ge."start_time",
+        ge."end_time",
+        ge."location",
+        ge."attendees",
+        ge."html_link",
+        ge."updated_at"
+      FROM "google_events" ge
+      JOIN "event_mappings" em
+        ON ge."google_event_id" = em."google_event_id"
+      WHERE em."sdp_request_id" = $1
       `,
       [sdpRequestId],
     );
