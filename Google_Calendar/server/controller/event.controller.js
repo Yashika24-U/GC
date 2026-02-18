@@ -36,7 +36,6 @@ const handleCreateEvent = async (req, res) => {
       message: "Event created & synced",
     });
   } catch (err) {
-    throw err;
     res.status(500).json({ error: err.message });
   }
 };
@@ -54,22 +53,22 @@ const getEventBySdpRequest = async (req, res) => {
 
     const { rows } = await db.query(
       `
-      SELECT
-        ge."google_event_id",
-        ge."calendar_id",
-        ge."title",
-        ge."description",
-        ge."start_time",
-        ge."end_time",
-        ge."location",
-        ge."attendees",
-        ge."html_link",
-        ge."updated_at"
-      FROM "google_events" ge
-      JOIN "event_mappings" em
-        ON ge."google_event_id" = em."google_event_id"
-      WHERE em."sdp_request_id" = $1
-      `,
+  SELECT
+    ge.google_event_id,
+    ge.calendar_id,
+    ge.title,
+    ge.description,
+    ge.start_time,
+    ge.end_time,
+    ge.location,
+    ge.attendees,
+    ge.html_link,
+    ge.updated_at
+  FROM google_events ge
+  JOIN event_mappings em
+    ON ge.google_event_id = em.google_event_id
+  WHERE em.sdp_request_id = $1
+  `,
       [sdpRequestId],
     );
 
@@ -79,7 +78,7 @@ const getEventBySdpRequest = async (req, res) => {
 
     res.json({ status: "success", events: rows });
   } catch (err) {
-    throw err;
+    console.error("error", err);
   }
 };
 
