@@ -53,7 +53,7 @@ const getEventBySdpRequest = async (req, res) => {
 
     const { rows } = await db.query(
       `
-  SELECT
+  SELECT DISTINCT
     ge.google_event_id,
     ge.calendar_id,
     ge.title,
