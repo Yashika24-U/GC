@@ -81,10 +81,17 @@ async function handleCalendarChange(channelId, resourceId) {
 
     const events = response.data.items || [];
     for (const event of events) {
+      if (event.status === "cancelled") {
+        await db.query("DELETE FROM google_events WHERE google_event_id = $1", [
+          event.id,
+        ]);
+
+        continue;
+      }
       await upsertGoogleEvent(event, calendarId);
     }
   } catch (err) {
-    console.error("error in handlecal change", err);
+    console.error("error", err);
   }
 }
 

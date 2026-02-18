@@ -13,11 +13,9 @@ const {
 router.get("/auth/google", (req, res) => {
   try {
     const calendarId = req.query.calendarId;
-
     if (!calendarId) {
       return res.status(400).send("calendarId is required");
     }
-
     const url = oauth2Client.generateAuthUrl({
       access_type: "offline",
       prompt: "consent",
@@ -59,10 +57,6 @@ router.get("/auth/callback", async (req, res) => {
     return res.status(500).send("OAuth authentication failed");
   }
 });
-
-// =====================================
-// ✅ CHECK AUTH STATUS
-// =====================================
 router.get("/auth/status", async (req, res) => {
   try {
     const { calendarId } = req.query;

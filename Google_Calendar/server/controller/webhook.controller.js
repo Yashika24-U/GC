@@ -9,9 +9,6 @@ const webhookHandler = async (req, res) => {
   try {
     const resourceState = req.headers["x-goog-resource-state"];
     const eventId = req.headers["x-goog-resource-id"];
-
-    
-
     // Always ACK immediately
     res.status(200).send("OK");
 

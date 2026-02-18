@@ -850,8 +850,8 @@
 
     <script>
       /* ==========================================
-                      GLOBAL UI STATE (SINGLE EVENT ONLY)
-                      ========================================== */
+      GLOBAL UI STATE (SINGLE EVENT ONLY)
+     ========================================== */
       let reqId = null;
       let selectedCalendarId = null;
       let attendees = [];
@@ -865,20 +865,8 @@
 
       /* ==========================================
                       UTILITIES
+       ========================================== */
 
-                      ========================================== */
-
-      // function localInputToUTCISO(localValue) {
-      //   if (!localValue) return null;
-
-      //   // datetime-local is already local time
-      //   const localDate = new Date(localValue);
-
-      //   // Convert to UTC ISO safely
-      //   return new Date(
-      //     localDate.getTime() - localDate.getTimezoneOffset() * 60000,
-      //   ).toISOString();
-      // }
       function localInputToUTCISO(localValue) {
         if (!localValue) return null;
         return new Date(localValue).toISOString();
@@ -1133,7 +1121,7 @@
           return showToast("error", "Select a calendar first");
 
         // This URL should hit your backend route that calls oauth2Client.generateAuthUrl()
-        const authUrl = `https://gc.spritle.com/app/api/auth/google?calendarId=${selectedCalendarId}`;
+        const authUrl = `https://gc.spritle.com/api/auth/google?calendarId=${selectedCalendarId}`;
 
         // Open Google Login in a popup
         const width = 500,
@@ -1327,42 +1315,6 @@
             calendars
               .map((c) => `<option value="${c.id}">${c.summary}</option>`)
               .join("");
-
-          // calendarSelect.onchange = (e) => {
-          //   selectedCalendarId = e.target.value;
-          // };
-
-          // if (!selectedCalendarId) {
-          //   console.warn("Skipping auth check - calendarId missing");
-          // } else {
-          //   showLoading(true, "Checking authorization...");
-
-          //   try {
-          //     const res = await SDP.invokeUrl({
-          //       url: `https://gc.spritle.com/app/api/auth/status?calendarId=${selectedCalendarId}`,
-          //       method: "get",
-          //       headers: {
-          //         "Content-Type": "application/json",
-          //       },
-          //     });
-
-          //     // if (!res.response?.authorized) {
-          //     //   showToast("error", "Calendar not connected. Redirecting...");
-          //     //   window.open(
-          //     //     `https://gc.spritle.com/app/api/auth/google?calendarId=${selectedCalendarId}`,
-          //     //     "_blank",
-          //     //   );
-          //     // } else {
-          //     //   console.log("✅ Calendar already authorized");
-          //     // }
-          //   } catch (err) {
-
-          //     showToast("error", "Failed to verify calendar authorization");
-          //   } finally {
-          //     showLoading(false);
-          //   }
-          // }
-
           calendarSelect.onchange = async (e) => {
             console.log("calendars");
             selectedCalendarId = e.target.value;
@@ -1397,7 +1349,6 @@
           };
           window.addEventListener("message", (event) => {
             if (event.data === "oauth_success") {
-              console.log("OAuth completed. Re-checking authorization...");
               calendarSelect.dispatchEvent(new Event("change"));
             }
           });
