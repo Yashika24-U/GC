@@ -14,7 +14,7 @@ const setupCalendarWatch = async (calendarId, auth) => {
     if (rows.length > 0) {
       return rows[0];
     }
-
+    console.log("calId", calendarId);
     // 2. Call Google to create new watch
     const watchData = await createGoogleWatch(calendarId, auth);
 
