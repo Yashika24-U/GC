@@ -42,7 +42,7 @@ async function createGoogleWatch(calendarId) {
       requestBody: {
         id: crypto.randomUUID(), // Unique ID for this webhook channel
         type: "web_hook",
-        address: "https://gc.spritle.com/app/api/webhook",
+        address: "https://gc.spritle.com/api/webhook",
       },
     });
     return response.data;

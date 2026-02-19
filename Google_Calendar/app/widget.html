@@ -991,7 +991,7 @@
                       ========================================== */
       async function fetchEventFromDB() {
         const res = await SDP.invokeUrl({
-          url: `https://gc.spritle.com/app/api/requests/${reqId}`,
+          url: `https://gc.spritle.com/api/requests/${reqId}`,
           method: "get",
           headers: { "Content-Type": "application/json" },
         });
@@ -1007,7 +1007,7 @@
 
       async function deleteEventFromDB(eventId) {
         await SDP.invokeUrl({
-          url: `https://gc.spritle.com/app/api/requests/${reqId}/events/${eventId}`,
+          url: `https://gc.spritle.com/api/requests/${reqId}/events/${eventId}`,
           method: "delete",
           headers: { "Content-Type": "application/json" },
         });
@@ -1268,7 +1268,7 @@
 
         try {
           const res = await SDP.invokeUrl({
-            url: "https://gc.spritle.com/app/api/events",
+            url: "https://gc.spritle.com/api/events",
             method: "post",
             headers: {
               "Content-Type": "application/json",
@@ -1330,7 +1330,7 @@
             showLoading(true, "Checking authorization...");
             try {
               const res = await SDP.invokeUrl({
-                url: `https://gc.spritle.com/app/api/auth/status?calendarId=${encodeURIComponent(selectedCalendarId)}`,
+                url: `https://gc.spritle.com/api/auth/status?calendarId=${encodeURIComponent(selectedCalendarId)}`,
                 method: "get",
               });
 
