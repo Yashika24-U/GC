@@ -1316,7 +1316,6 @@
               .map((c) => `<option value="${c.id}">${c.summary}</option>`)
               .join("");
           calendarSelect.onchange = async (e) => {
-            console.log("calendars");
             selectedCalendarId = e.target.value;
             const authBtn = document.getElementById("authBtn");
             const statusLabel = document.getElementById("authStatus");

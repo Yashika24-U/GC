@@ -83,8 +83,8 @@ expressApp.use("/api", webhookRoutes);
 
 async function testConnection() {
   try {
-    const res = await db.query("SELECT NOW()"); // A "cheap" query to check health
-    console.log("Connected to PostgreSQL at:", res.rows[0].now);
+    const res = await db.query("SELECT NOW()");
+     console.log("Connected to PostgreSQL at:", res.rows[0].now);
   } catch (err) {
     console.error("Database connection failed:", err.stack);
   }

@@ -54,7 +54,7 @@ router.delete(
           eventId: googleEventId,
         });
       } else {
-        console.log("⚠️ Mapping not found — skipping Google delete");
+        
       }
 
       // 4️⃣ Delete mapping
