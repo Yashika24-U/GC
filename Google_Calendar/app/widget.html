@@ -872,6 +872,21 @@
         return new Date(localValue).toISOString();
       }
 
+      function setMinDateTime() {
+        const now = new Date();
+        const offset = now.getTimezoneOffset() * 60000;
+
+        const localNow = new Date(now.getTime() - offset)
+          .toISOString()
+          .slice(0, 16); // YYYY-MM-DDTHH:MM
+
+        const startInput = document.getElementById("start");
+        const endInput = document.getElementById("end");
+
+        if (startInput) startInput.min = localNow;
+        if (endInput) endInput.min = localNow;
+      }
+
       function isValidEmail(email) {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
       }
@@ -1368,6 +1383,16 @@
 
           // 4️⃣ Form submit
           eventForm.addEventListener("submit", handleFormSubmit);
+          setMinDateTime();
+
+          document.getElementById("cancelBtn").addEventListener("click", () => {
+            resetForm();
+            if (currentEvent) {
+              renderEventCard(currentEvent);
+            } else {
+              showFormView();
+            }
+          });
 
           // 5️⃣ Fetch existing event (guarded)
           try {
