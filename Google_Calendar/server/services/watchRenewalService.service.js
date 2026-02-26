@@ -1,6 +1,7 @@
 const db = require("../config/db");
 const { google } = require("googleapis");
 const { getAuthorizedClient } = require("../services/googleCalendar.service");
+const crypto = require("crypto");
 
 async function renewExpiringCalendarWatches() {
   const client = await db.connect();

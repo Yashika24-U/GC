@@ -867,7 +867,7 @@
                       UTILITIES
        ========================================== */
 
-      function localInputToUTCISO(localValue) {
+      function localInputToISO(localValue) {
         if (!localValue) return null;
         return localValue + ":00"; // just add seconds, NO conversion
       }
@@ -935,7 +935,6 @@
         overlay.classList.toggle("active", show);
       }
 
-
       function formatDisplayDate(dateStr) {
         if (!dateStr) return "";
         return new Date(dateStr).toLocaleString(undefined, {
@@ -984,12 +983,10 @@
         showLoading(true, "Deleting...");
 
         try {
-          // 1️⃣ Delete from Google Calendar
-
-          // 2️⃣ Delete from DB
+          //  Delete from DB
           await deleteEventFromDB(googleEventId);
 
-          // 3️⃣ Clear local state & update UI
+          //  Clear local state & update UI
           currentEvent = null;
           resetForm();
           showFormView();
@@ -1243,17 +1240,17 @@
           if (!isEditMode) {
             // CREATE → always send time
             payload.start = {
-              dateTime: localInputToUTCISO(start.value),
+              dateTime: localInputToISO(start.value),
               timeZone: USER_TIMEZONE,
             };
 
             payload.end = {
-              dateTime: localInputToUTCISO(end.value),
+              dateTime: localInputToISO(end.value),
               timeZone: USER_TIMEZONE,
             };
           } else {
-            const newStartISO = localInputToUTCISO(start.value);
-            const newEndISO = localInputToUTCISO(end.value);
+            const newStartISO = localInputToISO(start.value);
+            const newEndISO = localInputToISO(end.value);
 
             const originalStartISO = currentEvent.start_time;
             const originalEndISO = currentEvent.end_time;
@@ -1316,7 +1313,6 @@
             method: "post",
             headers: {
               "Content-Type": "application/json",
-              "ngrok-skip-browser-warning": "69420",
             },
             payload: JSON.stringify({
               sdpRequestId: reqId,
