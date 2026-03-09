@@ -867,9 +867,31 @@
                       UTILITIES
        ========================================== */
 
-      function localInputToUTCISO(localValue) {
+      function localInputToISO(localValue) {
         if (!localValue) return null;
-        return new Date(localValue).toISOString();
+        return localValue + ":00"; // just add seconds, NO conversion
+      }
+
+      function toLocalDateTimeValue(dateStr) {
+        if (!dateStr) return "";
+        const date = new Date(dateStr);
+        const offset = date.getTimezoneOffset() * 60000;
+        return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+      }
+
+      function setMinDateTime() {
+        const now = new Date();
+        const offset = now.getTimezoneOffset() * 60000;
+
+        const localNow = new Date(now.getTime() - offset)
+          .toISOString()
+          .slice(0, 16); // YYYY-MM-DDTHH:MM
+
+        const startInput = document.getElementById("start");
+        const endInput = document.getElementById("end");
+
+        if (startInput) startInput.min = localNow;
+        if (endInput) endInput.min = localNow;
       }
 
       function isValidEmail(email) {
@@ -911,13 +933,6 @@
         const overlay = document.getElementById("loadingOverlay");
         overlay.querySelector(".loader-text").textContent = text;
         overlay.classList.toggle("active", show);
-      }
-
-      function toLocalDateTimeValue(dateStr) {
-        if (!dateStr) return "";
-        const d = new Date(dateStr);
-        const offset = d.getTimezoneOffset() * 60000;
-        return new Date(d.getTime() - offset).toISOString().slice(0, 16);
       }
 
       function formatDisplayDate(dateStr) {
@@ -968,12 +983,10 @@
         showLoading(true, "Deleting...");
 
         try {
-          // 1️⃣ Delete from Google Calendar
-
-          // 2️⃣ Delete from DB
+          //  Delete from DB
           await deleteEventFromDB(googleEventId);
 
-          // 3️⃣ Clear local state & update UI
+          //  Clear local state & update UI
           currentEvent = null;
           resetForm();
           showFormView();
@@ -1221,19 +1234,47 @@
             summary: eventTitle.value,
             description: eventDescription.value,
             location: eventLocation.value,
-            start: {
-              dateTime: localInputToUTCISO(start.value),
-              timeZone: USER_TIMEZONE,
-            },
-            end: {
-              dateTime: localInputToUTCISO(end.value),
-              timeZone: USER_TIMEZONE,
-            },
             attendees: attendees,
           };
-          if (!payload.start.dateTime || !payload.end.dateTime) {
-            showToast("error", "Invalid date/time selected");
-            return;
+
+          if (!isEditMode) {
+            // CREATE → always send time
+            payload.start = {
+              dateTime: localInputToISO(start.value),
+              timeZone: USER_TIMEZONE,
+            };
+
+            payload.end = {
+              dateTime: localInputToISO(end.value),
+              timeZone: USER_TIMEZONE,
+            };
+          } else {
+            const newStartISO = localInputToISO(start.value);
+            const newEndISO = localInputToISO(end.value);
+
+            const originalStartISO = currentEvent.start_time;
+            const originalEndISO = currentEvent.end_time;
+
+            // Convert both to epoch milliseconds
+            const newStartMs = new Date(newStartISO).getTime();
+            const newEndMs = new Date(newEndISO).getTime();
+
+            const originalStartMs = new Date(originalStartISO).getTime();
+            const originalEndMs = new Date(originalEndISO).getTime();
+
+            if (newStartMs !== originalStartMs) {
+              payload.start = {
+                dateTime: newStartISO,
+                timeZone: USER_TIMEZONE,
+              };
+            }
+
+            if (newEndMs !== originalEndMs) {
+              payload.end = {
+                dateTime: newEndISO,
+                timeZone: USER_TIMEZONE,
+              };
+            }
           }
 
           const gEvent = isEditMode
@@ -1260,7 +1301,7 @@
 
       /* ==========================================
                       SAVE EVENT MAPPING TO BACKEND
-                      ========================================== */
+      ========================================== */
       async function syncEventToBackend(gEvent) {
         if (!reqId || !selectedCalendarId || !gEvent?.id) {
           return;
@@ -1272,7 +1313,6 @@
             method: "post",
             headers: {
               "Content-Type": "application/json",
-              "ngrok-skip-browser-warning": "69420",
             },
             payload: JSON.stringify({
               sdpRequestId: reqId,
@@ -1316,7 +1356,6 @@
               .map((c) => `<option value="${c.id}">${c.summary}</option>`)
               .join("");
           calendarSelect.onchange = async (e) => {
-            console.log("calendars");
             selectedCalendarId = e.target.value;
             const authBtn = document.getElementById("authBtn");
             const statusLabel = document.getElementById("authStatus");
@@ -1369,6 +1408,16 @@
 
           // 4️⃣ Form submit
           eventForm.addEventListener("submit", handleFormSubmit);
+          setMinDateTime();
+
+          document.getElementById("cancelBtn").addEventListener("click", () => {
+            resetForm();
+            if (currentEvent) {
+              renderEventCard(currentEvent);
+            } else {
+              showFormView();
+            }
+          });
 
           // 5️⃣ Fetch existing event (guarded)
           try {

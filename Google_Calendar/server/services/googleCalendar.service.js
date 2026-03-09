@@ -74,7 +74,7 @@ async function handleCalendarChange(channelId, resourceId) {
     // 3. Fetch changed events
     const response = await calendar.events.list({
       calendarId,
-      updatedMin: new Date(Date.now() - 60000).toISOString(),
+      updatedMin: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
       singleEvents: true,
       showDeleted: true,
     });
