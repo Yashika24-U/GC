@@ -1,4 +1,4 @@
-const db = require("../config/db");
+const db = require("../config/GCal_DBConfig");
 
 const upsertGoogleEvent = async (event, calendarId) => {
   const attendees = event.attendees

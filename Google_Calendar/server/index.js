@@ -10,155 +10,157 @@ var bodyParser = require("body-parser");
 var errorHandler = require("errorhandler");
 var morgan = require("morgan");
 var serveIndex = require("serve-index");
+var https = require("https");
 var chalk = require("chalk");
 var dotenv = require("dotenv");
-
 require("dotenv").config();
 dotenv.config({
-  path: path.join(__dirname, ".env"),
+  path: path.join(__dirname, ".env"),
 });
-
 process.env.PWD = process.env.PWD || process.cwd();
-
-const db = require("./config/db");
+const db = require("./config/GCal_DBConfig.js");
 var expressApp = express();
-
-// ✅ Changed Port to 3003
-var port = process.env.PORT || 3003;
-
-const eventRoutes = require("./routes/event.routes");
-const webhookRoutes = require("./routes/webhook.routes");
-const authRoutes = require("./routes/oauth.routes");
-
+var port = process.env.PORT || 5000;
+const eventRoutes = require("./routes/GCal_Event.routes.js");
+const webhookRoutes = require("./routes/GCal_Webhook.routes.js");
+const authRoutes = require("./routes/GCal_OAuth.routes.js");
 const {
-  renewExpiringCalendarWatches,
-} = require("./services/watchRenewalService.service");
-
+  renewExpiringCalendarWatches,
+} = require("./services/GCal_WatchRenewal.service.js");
+const logger = require("./utils/logger");
 expressApp.set("port", port);
 expressApp.use(morgan("dev"));
 expressApp.use(bodyParser.json());
 expressApp.use(bodyParser.urlencoded({ extended: false }));
 expressApp.use(errorHandler());
 
-// CORS + CSP Setup
 expressApp.use("/", function (req, res, next) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-
-  let connectSrc = "";
-  let manifest = fs
-    .readFileSync(path.join(__dirname, "..", "plugin-manifest.json"))
-    .toString();
-
-  manifest = JSON.parse(manifest);
-
-  if (
-    manifest != null &&
-    manifest.cspDomains != null &&
-    manifest.cspDomains["connect-src"] != null
-  ) {
-    let connectDomains = manifest.cspDomains["connect-src"];
-
-    if (validateDomains(connectDomains)) {
-      console.log(
-        chalk.bold.red(
-          connectDomains + " - found to be invalid URL(s) in connect-src"
-        )
-      );
-      next();
-      return false;
-    }
-
-    connectSrc = connectDomains.join(" ");
-  }
-
-  res.setHeader(
-    "Content-Security-Policy",
-    "connect-src https://*.zohostatic.com https://*.sigmausercontent.com https://*.datadoghq.com " +
-      connectSrc
-  );
-
-  next();
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  let connectSrc = "";
+  let manifest = fs
+    .readFileSync(path.join(__dirname, "..", "plugin-manifest.json"))
+    .toString();
+  manifest = JSON.parse(manifest);
+  if (
+    manifest != null &&
+    manifest.cspDomains != null &&
+    manifest.cspDomains["connect-src"] != null
+  ) {
+    let connectDomains = manifest.cspDomains["connect-src"];
+    if (validateDomains(connectDomains)) {
+      console.log(
+        chalk.bold.red(
+          connectDomains + " - found to be invalid URL(s) in connect-src",
+        ),
+      );
+      next();
+      return false;
+    }
+    connectSrc = connectDomains.join(" ");
+  }
+  res.setHeader(
+    "Content-Security-Policy",
+    "connect-src https://*.zohostatic.com https://*.sigmausercontent.com https://*.datadoghq.com" +
+      connectSrc,
+  );
+  next();
 });
 
-// Serve manifest
 expressApp.get("/plugin-manifest.json", function (req, res) {
-  res.sendFile(path.join(__dirname, "plugin-manifest.json"));
+  res.sendfile("plugin-manifest.json");
 });
 
-// Static files
 expressApp.use("/app", express.static("app"));
 expressApp.use("/app", serveIndex("app"));
 
 expressApp.get("/", function (req, res) {
-  res.redirect("/app");
+  res.redirect("/app");
 });
-
-// Routes
 expressApp.use("/api", authRoutes);
 expressApp.use("/api", eventRoutes);
 expressApp.use("/api", webhookRoutes);
 
-// Database Health Check
 async function testConnection() {
-  try {
-    const res = await db.query("SELECT NOW()");
-    console.log("Connected to PostgreSQL at:", res.rows[0].now);
-     console.log("Connected to PostgreSQL at:", res.rows[0].now);
-  } catch (err) {
-    console.error("Database connection failed:", err.stack);
-  }
+  try {
+    const res = await db.query("SELECT NOW()");
+    logger.info("Connected to PostgreSQL", {
+      timestamp: new Date().toISOString(),
+      dbTime: res.rows[0].now,
+    });
+  } catch (err) {
+    logger.error("Database connection failed", {
+      message: err.message,
+      stack: err.stack,
+      timestamp: new Date().toISOString(),
+    });
+  }
 }
 
 testConnection();
 
-// Google Calendar Watch Renewal Job
-(async () => {
-  try {
-    await renewExpiringCalendarWatches();
+// Function to safely run renewal with logs
+async function runWatchRenewal() {
+  try {
+    const result = await renewExpiringCalendarWatches();
+  } catch (err) {
+    logger.error("Watch renewal failed", {
+      message: err.message,
+      stack: err.stack,
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
 
-    // Repeat every 6 hours
-    setInterval(renewExpiringCalendarWatches, 6 * 60 * 60 * 1000);
-  } catch (err) {
-    console.error("Failed to start watch renewal job:", err.message);
-  }
-})();
+// Run once at startup
+runWatchRenewal();
 
-// ✅ HTTP Server (No HTTPS)
-expressApp
-  .listen(port, "127.0.0.1", () => {
-    console.log(
-      chalk.cyan.bold(`Server running on http://127.0.0.1:${port}`)
-    );
-  })
-  .on("error", function (err) {
-    if (err.code === "EADDRINUSE") {
-      console.log(chalk.bold.red(port + " port is already in use"));
-    }
-  });
+// Schedule periodic renewal every 6 hours
+setInterval(runWatchRenewal, 6 * 60 * 60 * 1000);
 
-// Validate Domains
+var options = {
+  key: fs.readFileSync("./key.pem"),
+  cert: fs.readFileSync("./cert.pem"),
+};
+
+https
+  .createServer(options, expressApp)
+  .listen(port, function () {
+    console.log(chalk.green("Zet running at https://localhost:" + port));
+    console.log(
+      chalk.bold.cyan(
+        "Note: Please enable the host (https://localhost:" +
+          port +
+          ") in a new tab and authorize the connection by clicking Advanced->Proceed to localhost (unsafe).",
+      ),
+    );
+  })
+  .on("error", function (err) {
+    if (err.code === "EADDRINUSE") {
+      console.log(chalk.bold.red(port + " port is already in use"));
+    }
+  });
+
 function validateDomains(domainsList) {
-  var invalidURLs = domainsList.filter(function (domain) {
-    return !isValidURL(domain);
-  });
+  var invalidURLs = domainsList.filter(function (domain) {
+    return !isValidURL(domain);
+  });
 
-  return invalidURLs && invalidURLs.length > 0;
+  return invalidURLs && invalidURLs.length > 0;
 }
 
 function isValidURL(url) {
-  try {
-    var parsedURL = new URL(url);
+  try {
+    var parsedURL = new URL(url);
+    if (
+      parsedURL.protocol !== "http" + ":" &&
+      parsedURL.protocol !== "https" + ":" &&
+      parsedURL.protocol !== "wss" + ":"
+    ) {
+      return false;
+    }
+  } catch (e) {
+    return false;
+  }
 
-    if (
-      parsedURL.protocol !== "http:" &&
-      parsedURL.protocol !== "https:" &&
-      parsedURL.protocol !== "wss:"
-    ) {
-      return false;
-    }
-  } catch (e) {
-    return false;
-  }
-
-  return true;
+  return true;
 }

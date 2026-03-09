@@ -6,7 +6,7 @@
 BEGIN;
 
 -- ==========================================
--- calendar_watches
+-- 1️⃣ calendar_watches
 -- ==========================================
 
 CREATE TABLE IF NOT EXISTS public.calendar_watches (
@@ -15,11 +15,13 @@ CREATE TABLE IF NOT EXISTS public.calendar_watches (
     channel_id VARCHAR(255) NOT NULL,
     resource_id VARCHAR(255) NOT NULL,
     expiration TIMESTAMPTZ NOT NULL,
-    created_at TIMESTAMP DEFAULT now()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    sync_token TEXT
 );
 
 -- ==========================================
--- event_mappings
+-- 2️⃣ event_mappings
 -- ==========================================
 
 CREATE TABLE IF NOT EXISTS public.event_mappings (
@@ -30,11 +32,14 @@ CREATE TABLE IF NOT EXISTS public.event_mappings (
     source VARCHAR(50),
     status VARCHAR(50) DEFAULT 'active',
     last_synced_at TIMESTAMP DEFAULT now(),
-    created_at TIMESTAMP DEFAULT now()
+    created_at TIMESTAMP DEFAULT now(),
+    CONSTRAINT fk_event_mapping_event
+      FOREIGN KEY (google_event_id)
+      REFERENCES google_events(google_event_id)
 );
 
 -- ==========================================
--- google_events
+-- 3️⃣ google_events
 -- ==========================================
 
 CREATE TABLE IF NOT EXISTS public.google_events (
@@ -42,9 +47,9 @@ CREATE TABLE IF NOT EXISTS public.google_events (
     calendar_id TEXT NOT NULL,
     title TEXT,
     description TEXT,
-    start_time TIMESTAMP,
-    end_time TIMESTAMP,
-    updated_at TIMESTAMP,
+    start_time TIMESTAMPTZ,
+    end_time TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ,
     raw_payload JSONB,
     location TEXT,
     attendees JSONB,
@@ -53,13 +58,34 @@ CREATE TABLE IF NOT EXISTS public.google_events (
 );
 
 -- ==========================================
--- user_tokens
+-- 4️⃣ user_tokens
 -- ==========================================
 
 CREATE TABLE IF NOT EXISTS public.user_tokens (
     calendar_id TEXT PRIMARY KEY,
     refresh_token TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    access_token TEXT,
+    access_token_expiry TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- ==========================================
+-- 5️⃣ Indexes
+-- ==========================================
+
+-- Fast lookup for webhooks
+CREATE INDEX IF NOT EXISTS idx_google_events_calendar
+ON google_events(calendar_id);
+
+-- Event mapping lookups
+CREATE INDEX IF NOT EXISTS idx_event_mappings_google_event
+ON event_mappings(google_event_id);
+
+CREATE INDEX IF NOT EXISTS idx_event_mappings_calendar
+ON event_mappings(calendar_id);
+
+-- Watch renewal queries
+CREATE INDEX IF NOT EXISTS idx_calendar_watches_expiration
+ON calendar_watches(expiration);
 
 COMMIT;

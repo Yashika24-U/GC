@@ -1,10 +1,9 @@
-BEGIN;
 
--- Fast lookup when Google webhook hits backend
+-- Fast lookup for webhooks
 CREATE INDEX IF NOT EXISTS idx_google_events_calendar
 ON google_events(calendar_id);
 
--- Two way sync lookup
+-- Event mapping lookups
 CREATE INDEX IF NOT EXISTS idx_event_mappings_google_event
 ON event_mappings(google_event_id);
 
