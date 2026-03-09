@@ -44,31 +44,29 @@ const handleCreateEvent = async (req, res) => {
  * Fetch event using SDP Request ID
  */
 const getEventBySdpRequest = async (req, res) => {
+  const { sdpRequestId } = req.params;
+
+  if (!sdpRequestId) {
+    return res.status(400).json({ message: "sdpRequestId is required" });
+  }
+
   try {
-    const { sdpRequestId } = req.params;
-
-    if (!sdpRequestId) {
-      return res.status(400).json({ message: "sdpRequestId is required" });
-    }
-
     const { rows } = await db.query(
-      `
-  SELECT DISTINCT
-    ge.google_event_id,
-    ge.calendar_id,
-    ge.title,
-    ge.description,
-    ge.start_time,
-    ge.end_time,
-    ge.location,
-    ge.attendees,
-    ge.html_link,
-    ge.updated_at
-  FROM google_events ge
-  JOIN event_mappings em
-    ON ge.google_event_id = em.google_event_id
-  WHERE em.sdp_request_id = $1
-  `,
+      `SELECT DISTINCT
+         ge.google_event_id,
+         ge.calendar_id,
+         ge.title,
+         ge.description,
+         ge.start_time,
+         ge.end_time,
+         ge.location,
+         ge.attendees,
+         ge.html_link,
+         ge.updated_at
+       FROM google_events ge
+       JOIN event_mappings em
+         ON ge.google_event_id = em.google_event_id
+       WHERE em.sdp_request_id = $1`,
       [sdpRequestId],
     );
 
@@ -76,12 +74,11 @@ const getEventBySdpRequest = async (req, res) => {
       return res.status(404).json({ message: "No event found" });
     }
 
-    res.json({ status: "success", events: rows });
+    res.json({ status: "success", total: rows.length, events: rows });
   } catch (err) {
-    console.error("error", err);
+    res.status(500).json({ error: "Internal error" });
   }
 };
-
 module.exports = {
   handleCreateEvent,
   getEventBySdpRequest,

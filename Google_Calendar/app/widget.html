@@ -749,12 +749,7 @@
               <select id="calendarSelect" required>
                 <option value="">Choose a calendar...</option>
               </select>
-              <!-- <div class="validation-hint">
-                Select where to create the event
-              </div> -->
-
               <span id="authStatus"></span>
-
               <button
                 id="authBtn"
                 class="btn-action hidden"
@@ -860,12 +855,22 @@
       let attendeesInput = null;
       let attendeeError = null;
       let editingEventId = null;
-
       const USER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
       /* ==========================================
-                      UTILITIES
-       ========================================== */
+      UTILITIES
+      ========================================== */
+
+      function escapeHtml(str) {
+        if (!str) return "";
+
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
 
       function localInputToISO(localValue) {
         if (!localValue) return null;
@@ -945,8 +950,8 @@
       }
 
       /* ==========================================
-                      GOOGLE CALENDAR
-                      ========================================== */
+      GOOGLE CALENDAR
+      ========================================== */
 
       async function fetchCalendarList() {
         const res = await SDP.invokeUrl({
@@ -983,10 +988,7 @@
         showLoading(true, "Deleting...");
 
         try {
-          //  Delete from DB
           await deleteEventFromDB(googleEventId);
-
-          //  Clear local state & update UI
           currentEvent = null;
           resetForm();
           showFormView();
@@ -1000,8 +1002,9 @@
       }
 
       /* ==========================================
-                      BACKEND (SOURCE OF TRUTH)
-                      ========================================== */
+      BACKEND (SOURCE OF TRUTH)
+      ========================================== */
+
       async function fetchEventFromDB() {
         const res = await SDP.invokeUrl({
           url: `https://gc.spritle.com/api/requests/${reqId}`,
@@ -1027,8 +1030,8 @@
       }
 
       /* ==========================================-
-                      VIEW HELPERS
-                      ========================================== */
+      VIEW HELPERS
+      ========================================== */
       function showFormView() {
         document.getElementById("formSection").classList.remove("hidden");
         document.getElementById("eventsSection").classList.add("hidden");
@@ -1038,84 +1041,118 @@
         document.getElementById("eventsSection").classList.remove("hidden");
         document.getElementById("formSection").classList.add("hidden");
       }
+
       function renderEventCard(event) {
         const card = document.getElementById("eventCard");
 
+        const safeTitle = escapeHtml(event.title);
+        const safeDescription = escapeHtml(event.description);
+        const safeLocation = escapeHtml(event.location);
+
+        // Validate meet link properly
+        const rawMeetLink = event.html_link || event.hangoutLink;
+
+        const meetLinkHtml = isSafeUrl(rawMeetLink)
+          ? `<a href="${escapeHtml(rawMeetLink)}" target="_blank" rel="noopener" class="meet-link">
+        Join Google Meet
+      </a>`
+          : '<p class="no-data">Not available</p>';
+
         const attendeesList = event.attendees?.length
           ? event.attendees
-              .map(
-                (a) => `
-                  <div class="attendee-item">
-                    <div class="attendee-avatar">
-                      ${a.email.charAt(0).toUpperCase()}
-                    </div>
-                    <div class="attendee-info">
-                      <span class="attendee-email">${a.email}</span>
-                    </div>
-                  </div>`,
-              )
+              .map((a) => {
+                const email = escapeHtml(a.email);
+                const avatar = email.charAt(0).toUpperCase();
+
+                return `
+          <div class="attendee-item">
+            <div class="attendee-avatar">${avatar}</div>
+            <div class="attendee-info">
+              <span class="attendee-email">${email}</span>
+            </div>
+          </div>`;
+              })
               .join("")
           : '<div class="no-data">No attendees</div>';
 
-        const description = event.description
-          ? `<p class="event-description">${event.description}</p>`
+        const description = safeDescription
+          ? `<p class="event-description">${safeDescription}</p>`
           : '<p class="no-data">No description provided</p>';
 
-        const meetLink = event.html_link || event.hangoutLink;
-
         card.innerHTML = `
-          <div class="event-card">
-            <div class="event-header">
-              <h2 class="event-title">${event.title}</h2>
-              <div class="event-actions">
-                <button onclick="editEvent('${currentEvent.google_event_id}')" class="btn-action">
-                  Edit
-                </button>
-                <button onclick="handleDelete('${currentEvent.google_event_id}')" class="btn-action btn-delete">
-                  Delete
-                </button>
-              </div>
-            </div>
+    <div class="event-card">
+      <div class="event-header">
+        <h2 class="event-title">${safeTitle}</h2>
 
-            <div class="event-section">
-              <h3>Description</h3>
-              ${description}
-            </div>
+        <div class="event-actions">
+          <button class="btn-action edit-btn">
+            Edit
+          </button>
 
-            <div class="event-section">
-              <h3>Date & Time</h3>
-              <p><strong>Start:</strong> ${formatDisplayDate(event.start_time)}</p>
-              <p><strong>End:</strong> ${formatDisplayDate(event.end_time)}</p>
-            </div>
+          <button class="btn-action btn-delete delete-btn">
+            Delete
+          </button>
+        </div>
+      </div>
 
-            <div class="event-section">
-              <h3>Location</h3>
-              <p>${event.location || '<span class="no-data">Not set</span>'}</p>
-            </div>
+      <div class="event-section">
+        <h3>Description</h3>
+        ${description}
+      </div>
 
-            <div class="event-section">
-              <h3>Meeting Link</h3>
-              ${
-                meetLink
-                  ? `<a href="${meetLink}" target="_blank" rel="noopener" class="meet-link">
-                      Join Google Meet
-                    </a>`
-                  : '<p class="no-data">Not available</p>'
-              }
-            </div>
+      <div class="event-section">
+        <h3>Date & Time</h3>
+        <p><strong>Start:</strong> ${formatDisplayDate(event.start_time)}</p>
+        <p><strong>End:</strong> ${formatDisplayDate(event.end_time)}</p>
+      </div>
 
-            <div class="event-section">
-              <h3>Attendees (${event.attendees?.length || 0})</h3>
-              ${attendeesList}
-            </div>
-          </div>
-        `;
+      <div class="event-section">
+        <h3>Location</h3>
+        <p>${safeLocation || '<span class="no-data">Not set</span>'}</p>
+      </div>
+
+      <div class="event-section">
+        <h3>Meeting Link</h3>
+        ${meetLinkHtml}
+      </div>
+
+      <div class="event-section">
+        <h3>Attendees (${event.attendees?.length || 0})</h3>
+        ${attendeesList}
+      </div>
+    </div>
+  `;
 
         showEventView();
+
+        const editBtn = card.querySelector(".edit-btn");
+        const deleteBtn = card.querySelector(".delete-btn");
+
+        if (editBtn) {
+          editBtn.addEventListener("click", () => {
+            editEvent(event.google_event_id);
+          });
+        }
+
+        if (deleteBtn) {
+          deleteBtn.addEventListener("click", () => {
+            handleDelete(event.google_event_id);
+          });
+        }
       }
 
+      function isSafeUrl(url) {
+        if (!url) return false;
+
+        try {
+          const parsed = new URL(url);
+          return parsed.protocol === "https:" || parsed.protocol === "http:";
+        } catch {
+          return false;
+        }
+      }
       /* ==========================================
-                      FORM ACTIONS
+      FORM ACTIONS
       ========================================== */
       function resetForm() {
         document.getElementById("eventForm").reset();
@@ -1132,11 +1169,7 @@
       function startAuth() {
         if (!selectedCalendarId)
           return showToast("error", "Select a calendar first");
-
-        // This URL should hit your backend route that calls oauth2Client.generateAuthUrl()
         const authUrl = `https://gc.spritle.com/api/auth/google?calendarId=${selectedCalendarId}`;
-
-        // Open Google Login in a popup
         const width = 500,
           height = 600;
         const left = window.innerWidth / 2 - width / 2;
@@ -1160,19 +1193,26 @@
 
         isEditMode = true;
 
-        // Change submit button text
         document.getElementById("submitBtnText").textContent = "Update Event";
         document.getElementById("cancelBtn").classList.remove("hidden");
         attendees = [];
 
-        // Hydrate attendees from backend event
-        if (Array.isArray(event.attendees)) {
-          attendees = event.attendees.map((a) => ({
+        let parsedAttendees = event.attendees;
+
+        if (typeof parsedAttendees === "string") {
+          try {
+            parsedAttendees = JSON.parse(parsedAttendees);
+          } catch (err) {
+            parsedAttendees = [];
+          }
+        }
+
+        if (Array.isArray(parsedAttendees)) {
+          attendees = parsedAttendees.map((a) => ({
             email: a.email,
           }));
         }
 
-        // Re-render attendee chips
         renderAttendees();
 
         showFormView();
@@ -1204,9 +1244,10 @@
 
       /* ==========================================
                       FORM SUBMIT
-                      ========================================== */
+        ========================================== */
       async function handleFormSubmit(e) {
         e.preventDefault();
+
         // addAttendeeFromInput();
         if (!addAttendeeFromInput() && attendeesInput.value.trim()) {
           return;
@@ -1234,8 +1275,10 @@
             summary: eventTitle.value,
             description: eventDescription.value,
             location: eventLocation.value,
-            attendees: attendees,
           };
+          if (attendees.length > 0) {
+            payload.attendees = attendees;
+          }
 
           if (!isEditMode) {
             // CREATE → always send time
@@ -1249,48 +1292,37 @@
               timeZone: USER_TIMEZONE,
             };
           } else {
-            const newStartISO = localInputToISO(start.value);
-            const newEndISO = localInputToISO(end.value);
-
-            const originalStartISO = currentEvent.start_time;
-            const originalEndISO = currentEvent.end_time;
-
-            // Convert both to epoch milliseconds
-            const newStartMs = new Date(newStartISO).getTime();
-            const newEndMs = new Date(newEndISO).getTime();
-
-            const originalStartMs = new Date(originalStartISO).getTime();
-            const originalEndMs = new Date(originalEndISO).getTime();
-
-            if (newStartMs !== originalStartMs) {
-              payload.start = {
-                dateTime: newStartISO,
-                timeZone: USER_TIMEZONE,
-              };
-            }
-
-            if (newEndMs !== originalEndMs) {
-              payload.end = {
-                dateTime: newEndISO,
-                timeZone: USER_TIMEZONE,
-              };
-            }
+            payload.start = {
+              dateTime: localInputToISO(start.value),
+              timeZone: USER_TIMEZONE,
+            };
+            payload.end = {
+              dateTime: localInputToISO(end.value),
+              timeZone: USER_TIMEZONE,
+            };
           }
 
           const gEvent = isEditMode
             ? await updateEvent(currentEvent.google_event_id, payload)
             : await createEvent(payload);
 
+          let syncFailed = false;
           try {
             await syncEventToBackend(gEvent);
           } catch (err) {
-            showToast("error", "Event created but sync failed");
+            syncFailed = true;
           }
 
           currentEvent = await fetchEventFromDB();
+
           renderEventCard(currentEvent);
 
-          showToast("success", isEditMode ? "Updated" : "Created");
+          if (!syncFailed) {
+            showToast(
+              "success",
+              isEditMode ? "Event updated" : "Event created",
+            );
+          }
           resetForm();
         } catch {
           showToast("error", "Operation failed");
@@ -1300,33 +1332,30 @@
       }
 
       /* ==========================================
-                      SAVE EVENT MAPPING TO BACKEND
+      SAVE EVENT MAPPING TO BACKEND
       ========================================== */
       async function syncEventToBackend(gEvent) {
         if (!reqId || !selectedCalendarId || !gEvent?.id) {
           return;
         }
 
-        try {
-          const res = await SDP.invokeUrl({
-            url: "https://gc.spritle.com/api/events",
-            method: "post",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            payload: JSON.stringify({
-              sdpRequestId: reqId,
-              calendarId: selectedCalendarId,
-              source: "SDP",
-              googleEvent: gEvent,
-            }),
-          });
-        } catch (err) {
-          throw err;
-        }
+        const res = await SDP.invokeUrl({
+          url: "https://gc.spritle.com/api/events",
+          method: "post",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          payload: JSON.stringify({
+            sdpRequestId: reqId,
+            calendarId: selectedCalendarId,
+            source: "SDP",
+            googleEvent: gEvent,
+          }),
+        });
+        return res;
       }
       /* ==========================================
-                      INIT
+      INIT
       ========================================== */
       document.addEventListener("DOMContentLoaded", async () => {
         let data;
@@ -1353,7 +1382,10 @@
           calendarSelect.innerHTML =
             `<option value="">Choose a calendar...</option>` +
             calendars
-              .map((c) => `<option value="${c.id}">${c.summary}</option>`)
+              .map(
+                (c) =>
+                  `<option value="${escapeHtml(c.id)}">${escapeHtml(c.summary)}</option>`,
+              )
               .join("");
           calendarSelect.onchange = async (e) => {
             selectedCalendarId = e.target.value;
@@ -1367,6 +1399,8 @@
             if (!selectedCalendarId) return;
 
             showLoading(true, "Checking authorization...");
+
+            // 2. Verify if calendar is authorized by calling backend (which checks token validity with Google)
             try {
               const res = await SDP.invokeUrl({
                 url: `https://gc.spritle.com/api/auth/status?calendarId=${encodeURIComponent(selectedCalendarId)}`,
@@ -1374,7 +1408,9 @@
               });
 
               if (res.response?.authorized) {
-                statusLabel.innerHTML = `Linked: <strong style="color: #2e7d32;">${res.response.email || "Authorized"}</strong>`;
+                statusLabel.innerHTML = `Linked: <strong style="color: #2e7d32;">
+                  ${escapeHtml(res.response.email) || "Authorized"}
+                </strong>`;
                 authBtn.classList.add("hidden");
               } else {
                 statusLabel.innerHTML = `<span style="color: #d32f2f;">Connection required to sync events.</span>`;
@@ -1386,7 +1422,17 @@
               showLoading(false);
             }
           };
+          // window.addEventListener("message", (event) => {
+          //   if (event.data === "oauth_success") {
+          //     calendarSelect.dispatchEvent(new Event("change"));
+          //   }
+          // });
           window.addEventListener("message", (event) => {
+            if (
+              event.origin !==
+              "https://semialcoholic-tish-nondistractingly.ngrok-free.dev"
+            )
+              return;
             if (event.data === "oauth_success") {
               calendarSelect.dispatchEvent(new Event("change"));
             }
@@ -1408,6 +1454,8 @@
 
           // 4️⃣ Form submit
           eventForm.addEventListener("submit", handleFormSubmit);
+
+          // Need to understand
           setMinDateTime();
 
           document.getElementById("cancelBtn").addEventListener("click", () => {
@@ -1419,7 +1467,7 @@
             }
           });
 
-          // 5️⃣ Fetch existing event (guarded)
+          // 5️⃣ Fetch existing event
           try {
             currentEvent = await fetchEventFromDB();
           } catch (err) {
@@ -1437,12 +1485,13 @@
           showLoading(false);
         }
       });
+
+      // Edit Event - populate form with existing event data
       function editEvent(eventId) {
         if (!currentEvent || currentEvent.google_event_id !== eventId) {
           return;
         }
 
-        isEditMode = true;
         editingEventId = eventId;
 
         populateFormForEdit(currentEvent);

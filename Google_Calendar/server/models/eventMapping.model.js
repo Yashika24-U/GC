@@ -1,5 +1,6 @@
 const db = require("../config/db");
 
+// Create or Update mapping between SDP Request ID and Google Event ID
 const createEventMapping = async ({
   sdpRequestId,
   googleEventId,
@@ -25,32 +26,7 @@ const createEventMapping = async ({
   return rows[0];
 };
 
-const getMappingBySdpId = async (sdpRequestId) => {
-  const { rows } = await db.query(
-    `SELECT * FROM event_mappings WHERE sdp_request_id = $1 AND status = 'ACTIVE'`,
-    [sdpRequestId],
-  );
-  return rows[0];
-};
-
-const getMappingByGoogleId = async (googleEventId) => {
-  const { rows } = await db.query(
-    `SELECT * FROM event_mappings WHERE google_event_id = $1`,
-    [googleEventId],
-  );
-  return rows[0];
-};
-
-const markMappingDeleted = async (googleEventId) => {
-  await db.query(
-    `UPDATE event_mappings SET status='DELETED', updated_at=NOW() WHERE google_event_id=$1`,
-    [googleEventId],
-  );
-};
-
 module.exports = {
   createEventMapping,
-  getMappingBySdpId,
-  getMappingByGoogleId,
-  markMappingDeleted,
+  
 };

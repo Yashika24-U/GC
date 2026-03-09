@@ -23,11 +23,10 @@ var port = process.env.PORT || 5000;
 const eventRoutes = require("./routes/event.routes");
 const webhookRoutes = require("./routes/webhook.routes");
 const authRoutes = require("./routes/oauth.routes");
-const { google } = require("googleapis");
 const {
   renewExpiringCalendarWatches,
 } = require("./services/watchRenewalService.service");
-
+const logger = require("./utils/logger");
 expressApp.set("port", port);
 expressApp.use(morgan("dev"));
 expressApp.use(bodyParser.json());
@@ -75,7 +74,6 @@ expressApp.use("/app", serveIndex("app"));
 
 expressApp.get("/", function (req, res) {
   res.redirect("/app");
-
 });
 expressApp.use("/api", authRoutes);
 expressApp.use("/api", eventRoutes);
@@ -84,24 +82,39 @@ expressApp.use("/api", webhookRoutes);
 async function testConnection() {
   try {
     const res = await db.query("SELECT NOW()");
-     console.log("Connected to PostgreSQL at:", res.rows[0].now);
+    logger.info("Connected to PostgreSQL", {
+      timestamp: new Date().toISOString(),
+      dbTime: res.rows[0].now,
+    });
   } catch (err) {
-    console.error("Database connection failed:", err.stack);
+    logger.error("Database connection failed", {
+      message: err.message,
+      stack: err.stack,
+      timestamp: new Date().toISOString(),
+    });
   }
 }
 
 testConnection();
-// Start Google Calendar watch renewal job
-(async () => {
-  try {
-    await renewExpiringCalendarWatches();
 
-    // Optional: repeat every 6 hours
-    setInterval(renewExpiringCalendarWatches, 6 * 60 * 60 * 1000);
+// Function to safely run renewal with logs
+async function runWatchRenewal() {
+  try {
+    const result = await renewExpiringCalendarWatches();
   } catch (err) {
-    console.error("Failed to start watch renewal job:", err.message);
+    logger.error("Watch renewal failed", {
+      message: err.message,
+      stack: err.stack,
+      timestamp: new Date().toISOString(),
+    });
   }
-})();
+}
+
+// Run once at startup
+runWatchRenewal();
+
+// Schedule periodic renewal every 6 hours
+setInterval(runWatchRenewal, 6 * 60 * 60 * 1000);
 
 var options = {
   key: fs.readFileSync("./key.pem"),
