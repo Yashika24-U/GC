@@ -8,7 +8,7 @@
       "path_url": "/app/widget.html",
       "show_widget_header_in_dashboard": true,
       "cspDomains": {
-        "connect-src": ["https://*.ngrok-free.dev", "https://*.googleapis.com"]
+        "connect-src": ["https://*.googleapis.com"]
       },
       "icons": {
         "30x30": "/app/img/Calendar.png"

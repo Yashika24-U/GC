@@ -1,12 +1,11 @@
-const db = require("../config/db");
+const db = require("../config/GCal_DBConfig");
 const {
   createGoogleWatch,
   getAuthorizedClient,
-} = require("./googleCalendar.service");
+} = require("./GCal_Service.service");
 
 const setupCalendarWatch = async (calendarId) => {
   try {
-   
     const currentTime = new Date();
 
     const { rows } = await db.query(
@@ -23,16 +22,14 @@ const setupCalendarWatch = async (calendarId) => {
       throw new Error("No OAuth credentials found for calendar");
     }
 
-    
     const watchData = await createGoogleWatch(calendarId, auth);
 
     if (!watchData || !watchData.id || !watchData.resourceId) {
       throw new Error("Google did not return required watch data.");
     }
 
-   
     const expiryDate = new Date(Number(watchData.expiration));
-8
+    8;
     await db.query(
       `INSERT INTO calendar_watches (calendar_id, channel_id, resource_id, expiration)
        VALUES ($1, $2, $3, $4)

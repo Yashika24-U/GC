@@ -2,16 +2,14 @@ const express = require("express");
 const router = express.Router();
 const { google } = require("googleapis");
 const logger = require("../utils/logger.js");
-const {
-  getAuthorizedClient,
-} = require("../services/googleCalendar.service.js");
+const { getAuthorizedClient } = require("../services/GCal_Service.service.js");
 
 const {
   handleCreateEvent,
   getEventBySdpRequest,
-} = require("../controller/event.controller.js");
+} = require("../controller/Gcal_event.controller.js");
 
-const db = require("../config/db.js");
+const db = require("../config/GCal_DBConfig.js");
 
 // GET /requests/:sdpRequestId
 router.get("/requests/:sdpRequestId", getEventBySdpRequest);

@@ -1,4 +1,4 @@
-const db = require("../config/db");
+const db = require("../config/GCal_DBConfig");
 
 // Create or Update mapping between SDP Request ID and Google Event ID
 const createEventMapping = async ({
@@ -28,5 +28,4 @@ const createEventMapping = async ({
 
 module.exports = {
   createEventMapping,
-  
 };

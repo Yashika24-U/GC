@@ -1,8 +1,10 @@
 const { upsertGoogleEvent } = require("../models/googleEvent.model");
-const { createEventMapping } = require("../models/eventMapping.model");
-const { setupCalendarWatch } = require("../services/calendarWatch.service");
-const { getAuthorizedClient } = require("../services/googleCalendar.service");
-const db = require("../config/db");
+const { createEventMapping } = require("../models/GCal_EventMapping.model");
+const {
+  setupCalendarWatch,
+} = require("../services/GCal_CalendarWatch.service");
+const { getAuthorizedClient } = require("../services/GCal_Service.service.js");
+const db = require("../config/GCal_DBConfig");
 
 /**
  * Create Google Event → Save → Map → Watch

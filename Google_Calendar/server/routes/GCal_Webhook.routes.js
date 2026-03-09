@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const logger = require("../utils/logger");
-const { handleCalendarChange } = require("../services/googleCalendar.service");
+const { handleCalendarChange } = require("../services/GCal_Service.service.js");
 
 // POST /webhook
 router.post("/webhook", async (req, res) => {
@@ -18,7 +18,7 @@ router.post("/webhook", async (req, res) => {
       logger.error("Webhook processing failed", {
         error: err.message,
         stack: err.stack,
-      }); 
+      });
     });
   }
 });

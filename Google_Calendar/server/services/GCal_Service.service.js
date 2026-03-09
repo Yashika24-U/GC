@@ -1,6 +1,6 @@
 const { google } = require("googleapis");
 const path = require("path");
-const db = require("../config/db");
+const db = require("../config/GCal_DBConfig");
 const { upsertGoogleEvent } = require("../models/googleEvent.model");
 const crypto = require("crypto");
 

@@ -1,11 +1,11 @@
 const express = require("express");
 const router = express.Router();
-const db = require("../config/db");
+const db = require("../config/GCal_DBConfig");
 const { google } = require("googleapis");
 const {
   oauth2Client,
   getAuthorizedClient,
-} = require("../services/googleCalendar.service");
+} = require("../services/GCal_Service.service.js");
 
 // =====================================
 // 🔐 GOOGLE AUTH REDIRECT

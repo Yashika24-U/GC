@@ -1,8 +1,8 @@
-const db = require("../config/db");
+const db = require("../config/GCal_DBConfig");
 const { google } = require("googleapis");
-const { getAuthorizedClient } = require("../services/googleCalendar.service");
+const { getAuthorizedClient } = require("../services/GCal_Service.service.js");
 const crypto = require("crypto");
-const logger = require("../utils/logger"); 
+const logger = require("../utils/logger");
 
 async function renewExpiringCalendarWatches() {
   const client = await db.connect();
@@ -26,7 +26,6 @@ async function renewExpiringCalendarWatches() {
     }
 
     for (const watch of rows) {
-    
       // 2️⃣ Get authorized client
       const authClient = await getAuthorizedClient(watch.calendar_id);
       const calendar = google.calendar({ version: "v3", auth: authClient });

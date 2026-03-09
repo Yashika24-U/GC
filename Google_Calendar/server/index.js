@@ -17,15 +17,15 @@ dotenv.config({
   path: path.join(__dirname, ".env"),
 });
 process.env.PWD = process.env.PWD || process.cwd();
-const db = require("./config/db");
+const db = require("./config/GCal_DBConfig.js");
 var expressApp = express();
 var port = process.env.PORT || 5000;
-const eventRoutes = require("./routes/event.routes");
-const webhookRoutes = require("./routes/webhook.routes");
-const authRoutes = require("./routes/oauth.routes");
+const eventRoutes = require("./routes/GCal_Event.routes.js");
+const webhookRoutes = require("./routes/GCal_Webhook.routes.js");
+const authRoutes = require("./routes/GCal_OAuth.routes.js");
 const {
   renewExpiringCalendarWatches,
-} = require("./services/watchRenewalService.service");
+} = require("./services/GCal_WatchRenewal.service.js");
 const logger = require("./utils/logger");
 expressApp.set("port", port);
 expressApp.use(morgan("dev"));
