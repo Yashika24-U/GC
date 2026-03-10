@@ -12,7 +12,9 @@ async function getAuthorizedClient(calendarId) {
     [calendarId],
   );
 
-  if (!rows.length) return null;
+  if (!rows.length) {
+    return null;
+  }
 
   const token = rows[0];
 
@@ -64,6 +66,8 @@ async function createGoogleWatch(calendarId, auth) {
       version: "v3",
       auth,
     });
+    const calList = await calendar.calendarList.list();
+    const ids = calList.data.items.map((c) => c.id);
 
     const response = await calendar.events.watch({
       calendarId,
@@ -89,11 +93,10 @@ async function createGoogleWatch(calendarId, auth) {
 
 async function handleCalendarChange(channelId, resourceId) {
   try {
-    // 1️⃣ Find calendar + stored sync token
     const { rows } = await db.query(
-      `SELECT calendar_id, sync_token
-       FROM calendar_watches
-       WHERE channel_id = $1`,
+      `SELECT calendar_id, sync_token, user_email
+   FROM calendar_watches
+   WHERE channel_id = $1`,
       [channelId],
     );
 
@@ -103,9 +106,10 @@ async function handleCalendarChange(channelId, resourceId) {
 
     const calendarId = rows[0].calendar_id;
     const syncToken = rows[0].sync_token;
+    const userEmail = rows[0].user_email;
 
-    // 2️⃣ Google client
-    const auth = await getAuthorizedClient(calendarId);
+    // 2️⃣ Google client - use userEmail NOT calendarId
+    const auth = await getAuthorizedClient(userEmail);
 
     const calendar = google.calendar({
       version: "v3",

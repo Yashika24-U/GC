@@ -1428,11 +1428,7 @@
           //   }
           // });
           window.addEventListener("message", (event) => {
-            if (
-              event.origin !==
-              "https://semialcoholic-tish-nondistractingly.ngrok-free.dev"
-            )
-              return;
+            if (event.origin !== "https://gc.spritle.com") return;
             if (event.data === "oauth_success") {
               calendarSelect.dispatchEvent(new Event("change"));
             }

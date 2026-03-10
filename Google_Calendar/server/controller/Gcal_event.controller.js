@@ -13,35 +13,31 @@ const handleCreateEvent = async (req, res) => {
   try {
     const { googleEvent, calendarId, sdpRequestId, source } = req.body;
 
-    if (!googleEvent || !calendarId || !sdpRequestId) {
-      return res.status(400).json({ message: "Missing required fields" });
+    const userEmail = googleEvent.creator?.email;
+
+    const auth = await getAuthorizedClient(userEmail);
+    if (!auth) {
+      return res
+        .status(401)
+        .json({ error: `No OAuth credentials found for ${userEmail}` });
     }
 
-    // 1. Save Google event in DB
     await upsertGoogleEvent(googleEvent, calendarId);
-
-    // 2. Create mapping
     await createEventMapping({
       sdpRequestId,
       googleEventId: googleEvent.id,
       calendarId,
       source: source || "SDP",
     });
+    await setupCalendarWatch(calendarId, auth, userEmail);
 
-    // 3. Ensure watch exists
-    const auth = await getAuthorizedClient(calendarId);
-
-    await setupCalendarWatch(calendarId, auth);
-
-    res.status(201).json({
-      status: "success",
-      message: "Event created & synced",
-    });
+    res
+      .status(201)
+      .json({ status: "success", message: "Event created & synced" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
-
 /**
  * Fetch event using SDP Request ID
  */
