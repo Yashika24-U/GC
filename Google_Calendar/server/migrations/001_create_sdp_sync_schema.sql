@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS public.calendar_watches (
     expiration TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    sync_token TEXT
+    sync_token TEXT,
+    user_email TEXT
 );
 
 -- ==========================================
@@ -66,7 +67,8 @@ CREATE TABLE IF NOT EXISTS public.user_tokens (
     refresh_token TEXT NOT NULL,
     access_token TEXT,
     access_token_expiry TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    user_email TEXT  
 );
 
 -- ==========================================
