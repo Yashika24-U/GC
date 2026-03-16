@@ -65,8 +65,8 @@ router.delete(
           // Treat Google 404 as success (already deleted)
           if (err?.response?.status === 404) {
             logger.warn("Google event already deleted", {
-              calendarId: watch.calendar_id,
-              googleEventId: watch.google_event_id,
+              calendarId,
+              googleEventId,
               timestamp: new Date().toISOString(),
             });
           } else {
@@ -99,7 +99,7 @@ router.delete(
     } catch (err) {
       await client.query("ROLLBACK");
 
-      throw err;
+      logger.error("Delete event failed", err);
 
       res.status(500).json({
         status: "error",

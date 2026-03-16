@@ -10,27 +10,25 @@ async function getAuthorizedClient(calendarId) {
     [calendarId],
   );
   const email = ownerRes.rows[0]?.owner_email ?? calendarId;
+
   const { rows } = await db.query(
     `SELECT refresh_token, access_token, access_token_expiry
-      FROM user_tokens
-      WHERE calendar_id = $1`,
+     FROM user_tokens
+     WHERE calendar_id = $1`,
     [email],
   );
 
-  if (!rows.length) {
-    return null;
-  }
+  if (!rows.length) return null;
 
   const token = rows[0];
 
-  // Create OAuth client (do NOT reuse global client)
   const oauthClient = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
     process.env.GOOGLE_REDIRECT_URI,
   );
 
-  // 1️⃣ If access token exists and not expired → use it
+  // Step 3 — if access token is still valid, use it directly (fast path)
   if (
     token.access_token &&
     token.access_token_expiry &&
@@ -40,29 +38,57 @@ async function getAuthorizedClient(calendarId) {
       access_token: token.access_token,
       refresh_token: token.refresh_token,
     });
-
     return oauthClient;
   }
-
-  // 2️⃣ Otherwise refresh the token
-  oauthClient.setCredentials({
-    refresh_token: token.refresh_token,
-  });
-
-  const { credentials } = await oauthClient.refreshAccessToken();
-
-  // 3️⃣ Save new token
-  await db.query(
-    `UPDATE user_tokens
-      SET access_token = $1,
-          access_token_expiry = $2
-      WHERE calendar_id = $3`,
-    [credentials.access_token, new Date(credentials.expiry_date), email],
+  const lockKey = Math.abs(
+    email.split("").reduce((acc, ch) => acc * 31 + ch.charCodeAt(0), 0) %
+      2147483647,
   );
 
-  oauthClient.setCredentials(credentials);
+  const lockRes = await db.query(
+    "SELECT pg_try_advisory_lock($1) AS acquired",
+    [lockKey],
+  );
 
-  return oauthClient;
+  if (!lockRes.rows[0].acquired) {
+    await new Promise((r) => setTimeout(r, 500));
+
+    const { rows: freshRows } = await db.query(
+      `SELECT refresh_token, access_token, access_token_expiry
+       FROM user_tokens
+       WHERE calendar_id = $1`,
+      [email],
+    );
+
+    if (!freshRows.length) return null;
+
+    const fresh = freshRows[0];
+    oauthClient.setCredentials({
+      access_token: fresh.access_token,
+      refresh_token: fresh.refresh_token,
+    });
+    return oauthClient;
+  }
+  try {
+    oauthClient.setCredentials({
+      refresh_token: token.refresh_token,
+    });
+
+    const { credentials } = await oauthClient.refreshAccessToken();
+
+    await db.query(
+      `UPDATE user_tokens
+       SET access_token = $1,
+           access_token_expiry = $2
+       WHERE calendar_id = $3`,
+      [credentials.access_token, new Date(credentials.expiry_date), email],
+    );
+
+    oauthClient.setCredentials(credentials);
+    return oauthClient;
+  } finally {
+    await db.query("SELECT pg_advisory_unlock($1)", [lockKey]);
+  }
 }
 
 async function createGoogleWatch(calendarId, auth) {
@@ -79,8 +105,7 @@ async function createGoogleWatch(calendarId, auth) {
       requestBody: {
         id: crypto.randomUUID(),
         type: "web_hook",
-        address:
-          "https://gc.spritle.com/api/webhook",
+        address: "https://gc.spritle.com/api/webhook",
         token: crypto.randomUUID(),
       },
     });

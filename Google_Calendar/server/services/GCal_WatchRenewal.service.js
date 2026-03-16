@@ -28,6 +28,17 @@ async function renewExpiringCalendarWatches() {
     for (const watch of rows) {
       // 2️⃣ Get authorized client
       const authClient = await getAuthorizedClient(watch.calendar_id);
+
+      if (!authClient) {
+        logger.warn(
+          `Skipping watch renewal — no token for ${watch.user_email}`,
+          {
+            calendarId: watch.calendar_id,
+            userEmail: watch.user_email,
+          },
+        );
+        continue;
+      }
       const calendar = google.calendar({ version: "v3", auth: authClient });
 
       // 3️⃣ Stop old channel if exists
@@ -93,11 +104,6 @@ async function renewExpiringCalendarWatches() {
       message: err.message,
       stack: err.stack,
     });
-
-    // Optional: send to monitoring service in prod
-    if (process.env.NODE_ENV === "production") {
-      Sentry.captureException(err);
-    }
   } finally {
     client.release();
   }
