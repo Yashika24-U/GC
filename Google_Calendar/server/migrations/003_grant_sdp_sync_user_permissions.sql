@@ -21,6 +21,10 @@ GRANT SELECT, INSERT, UPDATE, DELETE
 ON TABLE public.user_tokens
 TO sdp_sync_user;
 
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON TABLE public.calendar_owners
+TO sdp_sync_user;
+
 GRANT USAGE, SELECT, UPDATE
 ON SEQUENCE public.calendar_watches_id_seq
 TO sdp_sync_user;

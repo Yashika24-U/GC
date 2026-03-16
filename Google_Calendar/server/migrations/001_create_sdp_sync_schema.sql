@@ -22,25 +22,34 @@ CREATE TABLE IF NOT EXISTS public.calendar_watches (
 );
 
 -- ==========================================
--- 2️⃣ event_mappings
+-- 2️⃣ user_tokens
 -- ==========================================
+-- Must come before calendar_owners (FK dependency)
 
-CREATE TABLE IF NOT EXISTS public.event_mappings (
-    id SERIAL PRIMARY KEY,
-    sdp_request_id VARCHAR(255) NOT NULL UNIQUE,
-    google_event_id VARCHAR(255) NOT NULL,
-    calendar_id VARCHAR(255) DEFAULT 'primary',
-    source VARCHAR(50),
-    status VARCHAR(50) DEFAULT 'active',
-    last_synced_at TIMESTAMP DEFAULT now(),
-    created_at TIMESTAMP DEFAULT now(),
-    CONSTRAINT fk_event_mapping_event
-      FOREIGN KEY (google_event_id)
-      REFERENCES google_events(google_event_id)
+CREATE TABLE IF NOT EXISTS public.user_tokens (
+    calendar_id TEXT PRIMARY KEY,
+    refresh_token TEXT NOT NULL,
+    access_token TEXT,
+    access_token_expiry TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    user_email TEXT  
 );
 
 -- ==========================================
--- 3️⃣ google_events
+-- 3️⃣ calendar_owners  ← NEW
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS public.calendar_owners (
+    calendar_id TEXT PRIMARY KEY,
+    owner_email TEXT NOT NULL
+                REFERENCES public.user_tokens(calendar_id)
+                ON DELETE CASCADE,
+    display_name TEXT,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ==========================================
+-- 4️⃣ google_events
 -- ==========================================
 
 CREATE TABLE IF NOT EXISTS public.google_events (
@@ -59,35 +68,45 @@ CREATE TABLE IF NOT EXISTS public.google_events (
 );
 
 -- ==========================================
--- 4️⃣ user_tokens
+-- 5️⃣ event_mappings
 -- ==========================================
+-- Must come after google_events (FK dependency)
 
-CREATE TABLE IF NOT EXISTS public.user_tokens (
-    calendar_id TEXT PRIMARY KEY,
-    refresh_token TEXT NOT NULL,
-    access_token TEXT,
-    access_token_expiry TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    user_email TEXT  
+CREATE TABLE IF NOT EXISTS public.event_mappings (
+    id SERIAL PRIMARY KEY,
+    sdp_request_id VARCHAR(255) NOT NULL UNIQUE,
+    google_event_id VARCHAR(255) NOT NULL,
+    calendar_id VARCHAR(255) DEFAULT 'primary',
+    source VARCHAR(50),
+    status VARCHAR(50) DEFAULT 'active',
+    last_synced_at TIMESTAMP DEFAULT now(),
+    created_at TIMESTAMP DEFAULT now(),
+    CONSTRAINT fk_event_mapping_event
+      FOREIGN KEY (google_event_id)
+      REFERENCES google_events(google_event_id)
 );
 
 -- ==========================================
--- 5️⃣ Indexes
+-- 6️⃣ Indexes
 -- ==========================================
+
+-- calendar_owners lookup
+CREATE INDEX IF NOT EXISTS idx_calendar_owners_email
+ON public.calendar_owners(owner_email);
 
 -- Fast lookup for webhooks
 CREATE INDEX IF NOT EXISTS idx_google_events_calendar
-ON google_events(calendar_id);
+ON public.google_events(calendar_id);
 
 -- Event mapping lookups
 CREATE INDEX IF NOT EXISTS idx_event_mappings_google_event
-ON event_mappings(google_event_id);
+ON public.event_mappings(google_event_id);
 
 CREATE INDEX IF NOT EXISTS idx_event_mappings_calendar
-ON event_mappings(calendar_id);
+ON public.event_mappings(calendar_id);
 
 -- Watch renewal queries
 CREATE INDEX IF NOT EXISTS idx_calendar_watches_expiration
-ON calendar_watches(expiration);
+ON public.calendar_watches(expiration);
 
 COMMIT;

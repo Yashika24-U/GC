@@ -5,11 +5,16 @@ const { upsertGoogleEvent } = require("../models/googleEvent.model");
 const crypto = require("crypto");
 
 async function getAuthorizedClient(calendarId) {
+  const ownerRes = await db.query(
+    `SELECT owner_email FROM calendar_owners WHERE calendar_id = $1`,
+    [calendarId],
+  );
+  const email = ownerRes.rows[0]?.owner_email ?? calendarId;
   const { rows } = await db.query(
     `SELECT refresh_token, access_token, access_token_expiry
       FROM user_tokens
       WHERE calendar_id = $1`,
-    [calendarId],
+    [email],
   );
 
   if (!rows.length) {
@@ -52,7 +57,7 @@ async function getAuthorizedClient(calendarId) {
       SET access_token = $1,
           access_token_expiry = $2
       WHERE calendar_id = $3`,
-    [credentials.access_token, new Date(credentials.expiry_date), calendarId],
+    [credentials.access_token, new Date(credentials.expiry_date), email],
   );
 
   oauthClient.setCredentials(credentials);
@@ -74,7 +79,8 @@ async function createGoogleWatch(calendarId, auth) {
       requestBody: {
         id: crypto.randomUUID(),
         type: "web_hook",
-        address: "https://gc.spritle.com/api/webhook",
+        address:
+          "https://gc.spritle.com/api/webhook",
         token: crypto.randomUUID(),
       },
     });
