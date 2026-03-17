@@ -196,6 +196,15 @@ async function handleCalendarChange(channelId, resourceId) {
         continue;
       }
 
+      const { rows: mapping } = await db.query(
+        "SELECT 1 FROM event_mappings WHERE google_event_id = $1",
+        [event.id],
+      );
+
+      if (mapping.length === 0) {
+        continue;
+      }
+
       await upsertGoogleEvent(event, calendarId);
     }
 

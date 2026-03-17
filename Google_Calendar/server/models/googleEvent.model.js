@@ -10,24 +10,26 @@ const upsertGoogleEvent = async (event, calendarId) => {
         })),
       )
     : null;
+
   await db.query(
     `INSERT INTO google_events (
-      google_event_id, calendar_id, title, description, location, 
-      start_time, end_time, attendees, html_link, updated_at, raw_payload
+      google_event_id, calendar_id, title, description, location,
+      start_time, end_time, attendees, html_link, updated_at
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10)
     ON CONFLICT (google_event_id)
     DO UPDATE SET
-      title = COALESCE(EXCLUDED.title, google_events.title),
+      title       = COALESCE(EXCLUDED.title, google_events.title),
       description = COALESCE(EXCLUDED.description, google_events.description),
-      location = COALESCE(EXCLUDED.location, google_events.location),
-      start_time = COALESCE(EXCLUDED.start_time, google_events.start_time),
-      end_time = COALESCE(EXCLUDED.end_time, google_events.end_time),
-      attendees = COALESCE(NULLIF(EXCLUDED.attendees, '{}'::jsonb), google_events.attendees),
-      html_link = COALESCE(EXCLUDED.html_link, google_events.html_link),
-      updated_at = EXCLUDED.updated_at,
-      raw_payload = EXCLUDED.raw_payload
-  `,
+      location    = COALESCE(EXCLUDED.location, google_events.location),
+      start_time  = COALESCE(EXCLUDED.start_time, google_events.start_time),
+      end_time    = COALESCE(EXCLUDED.end_time, google_events.end_time),
+      attendees   = COALESCE(
+                      NULLIF(EXCLUDED.attendees, '{}'::jsonb),
+                      google_events.attendees
+                    ),
+      html_link   = COALESCE(EXCLUDED.html_link, google_events.html_link),
+      updated_at  = EXCLUDED.updated_at`,
     [
       event.id,
       calendarId,
@@ -39,11 +41,8 @@ const upsertGoogleEvent = async (event, calendarId) => {
       attendees,
       event.htmlLink || null,
       event.updated || new Date(),
-      event,
     ],
   );
 };
 
-module.exports = {
-  upsertGoogleEvent,
-};
+module.exports = { upsertGoogleEvent };
